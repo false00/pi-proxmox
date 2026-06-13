@@ -1,0 +1,43 @@
+{
+  "name": "@false00/pi-proxmox",
+  "version": "0.1.0",
+  "description": "Proxmox VE automation tools for the Pi agent harness — manage VMs, LXC containers, storage, cluster, firewall, and backups via the Proxmox REST API",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist", "AGENTS.md", "README.md", "LICENSE"],
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" }
+  },
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "proxmox",
+    "proxmox-ve",
+    "virtualization",
+    "vm-management",
+    "lxc",
+    "infrastructure",
+    "false00"
+  ],
+  "license": "MIT",
+  "engines": { "node": ">=20.0.0" },
+  "author": "false00 <jortega@curl.red>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/false00/pi-proxmox"
+  },
+  "pi": {
+    "extensions": ["./dist/index.js"]
+  },
+  "scripts": {
+    "test": "node --test dist/**/*.test.js",
+    "lint": "echo 'no linter configured'"
+  },
+  "dependencies": {
+    "@sinclair/typebox": "^0.34.48"
+  },
+  "peerDependencies": {
+    "@mariozechner/pi-coding-agent": "*"
+  }
+}
