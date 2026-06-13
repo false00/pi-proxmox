@@ -96,7 +96,6 @@ Pi will use `proxmox_vm_list`, `proxmox_lxc_create`, `proxmox_cluster_status`, a
 | `proxmox_lxc_snapshot_rollback` | Rollback to a container snapshot |
 | `proxmox_lxc_snapshot_delete` | Delete a container snapshot |
 | `proxmox_lxc_migrate` | Migrate a container to another node |
-| `proxmox_lxc_exec` | Execute a command inside a container (API-first, falls back to SSH via `pct exec`) |
 
 ### Nodes
 
@@ -115,7 +114,7 @@ Pi will use `proxmox_vm_list`, `proxmox_lxc_create`, `proxmox_cluster_status`, a
 | `proxmox_node_time` | Get system time/timezone |
 | `proxmox_node_hardware` | List hardware devices |
 | `proxmox_node_network_list` | List network interfaces |
-| `proxmox_node_execute` | Execute arbitrary command on host node (API-first, falls back to SSH) |
+| `proxmox_node_execute` | Execute batch API calls on a node via /execute |
 | `proxmox_node_reboot` | Reboot the node |
 | `proxmox_node_stop` | Stop (power off) the node |
 | `proxmox_node_apt_update` | Refresh APT package index |
@@ -227,6 +226,10 @@ Pi will use `proxmox_vm_list`, `proxmox_lxc_create`, `proxmox_cluster_status`, a
 
 All tools that return structured data (list, status, config) output JSON. Tools that trigger asynchronous operations (create, start, shutdown, clone, migrate) return the task UPID for tracking progress via `proxmox_task_status` and `proxmox_task_log`.
 
+The VM QEMU Guest Agent tools (`proxmox_vm_agent_exec*`) provide command execution inside VMs. The `command` parameter is split on whitespace into individual arguments before being sent to the QEMU Guest Agent's `guest-exec` API (which expects `path` + `arg[]` as separate values). Use `proxmox_vm_agent_exec_status` via the returned PID to check completion and get output.
+
+For LXC containers, there is no API-based shell exec mechanism — use the QEMU Agent in VMs or configure SSH access at the host level.
+
 ## Install
 
 Install into Pi as a package:
@@ -247,29 +250,17 @@ For local development from this repo:
 pi -e .
 ```
 
-## SSH fallback
+## Pagination
 
-Two tools — `proxmox_lxc_exec` and `proxmox_node_execute` — try the Proxmox API first, then fall back to SSH. This is needed because:
+Several tools accept optional `start` (offset) and `limit` parameters for pagination. These map directly to Proxmox's `start` and `limit` query parameters on supported endpoints:
 
-- The Proxmox VE API has no native shell exec endpoint for LXC containers (unlike VMs which have a QEMU Guest Agent at `/agent/exec`).
-- The `/nodes/{node}/execute` endpoint is a batch API proxy, not a shell executor. It can call other REST endpoints but cannot run arbitrary commands.
+| Tool | Endpoint | `start` type |
+|------|----------|-------------|
+| `proxmox_task_list` | `/nodes/{node}/tasks` | integer offset |
+| `proxmox_task_log` | `/nodes/{node}/tasks/{upid}/log` | integer offset |
+| `proxmox_node_journal` | `/nodes/{node}/journal` | timestamp (Unix epoch) |
 
-When the API rejects a `command` parameter, the tool falls back to SSH on port 22.
-
-### Adding your SSH key
-
-```bash
-# Linux/macOS
-ssh-copy-id root@192.168.1.100
-
-# Windows (PowerShell)
-type $env:USERPROFILE/.ssh/id_ed25519.pub | ssh root@192.168.1.100 "cat >> /root/.ssh/authorized_keys"
-
-# Windows (cmd)
-type %USERPROFILE%\.ssh\id_ed25519.pub | ssh root@192.168.1.100 "cat >> /root/.ssh/authorized_keys"
-```
-
-Set `PROXMOX_SSH_KEY_PATH` in your `.env` to override the default key search path (`~/.ssh/id_ed25519` then `~/.ssh/id_rsa`).
+The `start` parameter on journal endpoints is a Unix timestamp, not a row offset. Pass `start` and `end` as epoch seconds to set the time window. Not all Proxmox versions support pagination parameters on every endpoint — unsupported parameters return a 400 error from the API (the tools are designed to let the LLM try, and errors are surfaced clearly).
 
 ## Configuration
 
@@ -296,9 +287,6 @@ PROXMOX_TOKEN_SECRET=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 # --- Password fallback (used by /execute endpoint when API tokens lack permission) ---
 PROXMOX_USERNAME=root@pam
 PROXMOX_PASSWORD=yourpassword
-
-# --- SSH ---
-PROXMOX_SSH_KEY_PATH=
 
 # --- Timeout ---
 PROXMOX_TIMEOUT_MS=30000
@@ -330,12 +318,6 @@ Values in `~/.config/pi-proxmox/.env` take precedence over environment variables
 | `PROXMOX_USERNAME` | Proxmox username (e.g., `root@pam`) |
 | `PROXMOX_PASSWORD` | Password (used when no API token is set) |
 | `PROXMOX_VERIFY_SSL` | Verify TLS certificate (`true`/`false`, default: `false`) |
-
-**SSH**
-
-| Variable | Purpose |
-|----------|---------|
-| `PROXMOX_SSH_KEY_PATH` | Path to SSH private key (default: `~/.ssh/id_ed25519` or `~/.ssh/id_rsa`) |
 
 **Timeouts**
 
@@ -371,8 +353,15 @@ Errors with category `timeout`, `server_error`, or `network` are marked retryabl
 
 ```bash
 npm install
-npm test
+npm test              # run all test suites
+npm run test:auth     # auth & connection
+npm run test:pagination
+npm run test:vm-agent # VM agent exec, file-read, etc.
+npm run test:execute   # batch API execute
+npm run test:lxc      # LXC container lifecycle
 ```
+
+Test suites live in `tests/` and run against a live Proxmox host configured via the `.env` file. Each suite creates and cleans up its own resources.
 
 ### Publishing
 

@@ -1,6 +1,3 @@
-import { spawnSync } from "child_process";
-import { homedir } from "os";
-import { join } from "path";
 import { loadConfig } from "./config.js";
 import { resolveToolTimeoutMs } from "./tool-settings.js";
 import { Agent } from "undici";
@@ -26,7 +23,6 @@ export class ProxmoxClient {
     this.password = cfg.password;
     this.verifySsl = cfg.verifySsl === "true" || cfg.verifySsl === true;
     this.timeoutMs = cfg.timeoutMs;
-    this.sshKeyPath = cfg.sshKeyPath;
     this.ticket = null;
     this.csrfToken = null;
     this._dispatcher = this.verifySsl ? undefined : new Agent({ connect: { rejectUnauthorized: false } });
@@ -60,7 +56,11 @@ export class ProxmoxClient {
     try {
       const params = body
         ? new URLSearchParams(
-            Object.entries(body).filter(([, v]) => v !== undefined && v !== null),
+            Object.entries(body).flatMap(([k, v]) => {
+              if (v === undefined || v === null) return [];
+              if (Array.isArray(v)) return v.map(item => [k, String(item)]);
+              return [[k, String(v)]];
+            }),
           ).toString()
         : undefined;
 
@@ -165,51 +165,6 @@ export class ProxmoxClient {
       this.ticket = savedTicket;
       this.csrfToken = savedCsrf;
     }
-  }
-
-  resolveSSHKeyPaths() {
-    const home = homedir();
-    const defaults = [
-      join(home, ".ssh", "id_ed25519"),
-      join(home, ".ssh", "id_rsa"),
-    ];
-    if (this.sshKeyPath) {
-      const normalized = this.sshKeyPath.replace(/^~/, home);
-      return [normalized, ...defaults.filter(p => p !== normalized)];
-    }
-    return defaults;
-  }
-
-  execViaSSH(host, port, command) {
-    const keyPaths = this.resolveSSHKeyPaths();
-    const errors = [];
-
-    for (const keyPath of keyPaths) {
-      const result = spawnSync("ssh", [
-        "-o", "StrictHostKeyChecking=no",
-        "-o", "UserKnownHostsFile=/dev/null",
-        "-p", String(port),
-        "-i", keyPath,
-        `root@${host}`,
-        command,
-      ], { encoding: "utf-8", timeout: this.timeoutMs });
-
-      if (result.status === 0) {
-        return result.stdout.trim();
-      }
-      if (result.error) {
-        errors.push(`${keyPath}: ${result.error.message}`);
-      } else {
-        errors.push(`${keyPath}: ${result.stderr.trim() || `exit code ${result.status}`}`);
-      }
-    }
-
-    throw new ProxmoxError(
-      `SSH execution failed.\nTried keys: ${keyPaths.join(", ")}\n` +
-      `Errors:\n${errors.join("\n")}\n\n` +
-      `Ensure the Proxmox host (${host}) has SSH running and your public key is in /root/.ssh/authorized_keys. ` +
-      `Set PROXMOX_SSH_KEY_PATH in ~/.config/pi-proxmox/.env if your key is at a non-standard path.`
-    );
   }
 
   async _probePermissions() {

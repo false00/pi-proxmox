@@ -53,21 +53,6 @@ function ensureDotEnvFile(discovered) {
       `PROXMOX_USERNAME=${discovered.username || "root@pam"}`,
       `PROXMOX_PASSWORD=${discovered.password || ""}`,
       "",
-      "# --- SSH (for proxmox_lxc_exec and proxmox_node_execute) ---",
-      "# WHY: The Proxmox VE API has no native shell exec endpoint for LXC containers",
-      "#      (unlike VMs which have a QEMU Guest Agent). The /node/execute endpoint is",
-      "#      a batch API proxy, not a shell executor. So LXC exec and node execute",
-      "#      fall back to SSH when the API can't run the command.",
-      "#",
-      "# To add your public key to the Proxmox host (edit the IP):",
-      "#   Linux/macOS:    ssh-copy-id root@192.168.1.100",
-      "#   Windows (pwsh): type $env:USERPROFILE/.ssh/id_ed25519.pub | ssh root@192.168.1.100 \"cat >> /root/.ssh/authorized_keys\"",
-      "#   Windows (cmd):  type %USERPROFILE%\\.ssh\\id_ed25519.pub | ssh root@192.168.1.100 \"cat >> /root/.ssh/authorized_keys\"",
-      "#",
-      "# Path to SSH private key for connecting to the Proxmox host as root.",
-      "# If not set, defaults to trying ~/.ssh/id_ed25519 then ~/.ssh/id_rsa.",
-      `PROXMOX_SSH_KEY_PATH=${discovered.sshKeyPath || ""}`,
-      "",
       "# --- Timeout ---",
       `PROXMOX_TIMEOUT_MS=${discovered.timeoutMs || "30000"}`,
     ];
@@ -137,12 +122,6 @@ export function loadConfig(overrides = {}) {
       ? overrides.verifySsl
       : fileVars.PROXMOX_VERIFY_SSL || process.env.PROXMOX_VERIFY_SSL || "false";
 
-  const sshKeyPath =
-    overrides.sshKeyPath ||
-    fileVars.PROXMOX_SSH_KEY_PATH ||
-    process.env.PROXMOX_SSH_KEY_PATH ||
-    "";
-
   const timeoutMs = parseInt(
     overrides.timeoutMs ||
       fileVars.PROXMOX_TIMEOUT_MS ||
@@ -161,7 +140,6 @@ export function loadConfig(overrides = {}) {
     password,
     verifySsl,
     timeoutMs,
-    sshKeyPath,
   };
 
   ensureDotEnvFile(resolved);

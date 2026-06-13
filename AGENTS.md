@@ -6,8 +6,9 @@ Proxmox VE automation tools for the Pi coding agent. Manage VMs (QEMU/KVM), LXC 
 
 - `dist/` — compiled JavaScript output (entry: `dist/index.js`)
 - `dist/tools/` — individual tool implementations (vm, lxc, node, storage, cluster, backup, firewall, etc.)
-- `dist/proxmox-client.js` — Proxmox REST API client with token auth, ticket auth, and SSH fallback
+- `dist/proxmox-client.js` — Proxmox REST API client with token auth and ticket auth
 - `dist/tool-runtime.js` — shared helpers (`execOnNode`, `safeExecute`, `emitProgress`, `throwIfAborted`)
+- `tests/` — test suites organized by domain (`auth.test.mjs`, `vm-agent.test.mjs`, `lxc.test.mjs`, etc.)
 - Source is JavaScript compiled directly to `dist/` (no separate `src/` directory)
 
 ## Key conventions
@@ -15,7 +16,7 @@ Proxmox VE automation tools for the Pi coding agent. Manage VMs (QEMU/KVM), LXC 
 - **Default export** in `dist/index.js` — the extension function registered with Pi
 - **Tool naming** — all tools prefixed `proxmox_` (e.g. `proxmox_vm_list`, `proxmox_lxc_create`)
 - **Config priority** — `.env` file > constructor params > env vars > defaults
-- **Auth** — API token auth (recommended) with password/ticket fallback; SSH for exec tools
+- **Auth** — API token auth (recommended) with password/ticket fallback for /execute endpoint
 - **Error handling** — tools return standardized error categories: `validation`, `authentication`, `not_found`, `timeout`, `network`, `server_error`, `unknown`
 
 ## Documentation rules
@@ -32,12 +33,21 @@ Proxmox VE automation tools for the Pi coding agent. Manage VMs (QEMU/KVM), LXC 
 
 - **Tool descriptions are agent-facing documentation.** The `description` field on each tool is what the LLM sees. Keep them accurate and concise.
 
+- **Tests are required for every change.** When adding a new tool, endpoint, feature, or changing behavior, write a test that:
+  1. Exercises the new or changed functionality against a live Proxmox host
+  2. Verifies both success and error paths
+  3. Creates any necessary test resources (VMs, containers, etc.) and **cleans them up** after
+  4. Place test files in `tests/` as `<domain>.test.mjs` and run with `npm run test:<domain>` or `node tests/<domain>.test.mjs`
+  5. Keep the test file in the repo — it serves as documentation and a regression suite
+
 ## Project quirks
 
 - **`dist/` is committed** — Changes are made directly to the `.js` files in `dist/`. There is no `src/` or separate build step.
 - **No `tsconfig.json`** — No TypeScript source files exist; the project is pure JavaScript.
-- **SSH dependency** — `proxmox_lxc_exec` and `proxmox_node_execute` require SSH access to the Proxmox host because the API has no native shell exec endpoint for LXC containers. See SSH section in README for setup.
-- **`execOnNode` shared helper** — Both exec tools delegate to `execOnNode(client, node, command, onUpdate)` in `tool-runtime.js`, which tries API → ticket auth → SSH. When adding new exec functionality, use this helper instead of duplicating the fallback logic.
+- **`execOnNode` shared helper** — `proxmox_node_execute` delegates to `execOnNode(client, node, commands, onUpdate)` in `tool-runtime.js`, which sends batch API calls to the `/nodes/{node}/execute` endpoint with API token → ticket auth fallback. When adding new exec functionality, use this helper instead of duplicating the fallback logic.
+- **No LXC shell exec** — There is no API-based mechanism to execute shell commands inside LXC containers. The QEMU Guest Agent tools provide this for VMs only.
+- **VM agent command splitting** — `proxmox_vm_agent_exec` splits the `command` string on whitespace into an array. This is required because the Proxmox API's `agent/exec` endpoint expects `path` and `arg[]` as separate form parameters; sending them as a single string crashes `pve-api-daemon` (status 596). The tool's `client.post()` uses `flatMap` in `#fetch` to expand array values into repeated form params (e.g., `command=ps&command=aux`).
+- **VM agent exec-status is GET** — `/qemu/{vmid}/agent/exec-status` is a read-only endpoint and must be called with GET, not POST. The same applies to all other read-only agent endpoints (`info`, `file-read`, `get-host-name`, `get-osinfo`, `get-time`, `get-users`, `get-vcpus`).
 
 ## Commit & publish policy
 

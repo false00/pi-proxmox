@@ -71,16 +71,15 @@ export function nodeJournal(client) {
     parameters: Type.Object({
       node: Type.String({ description: "Proxmox node name" }),
       since: Type.Optional(Type.String({ description: "Time range (e.g., '-1h', '-30m', '-1d')" })),
+      start: Type.Optional(Type.Integer({ description: "Start timestamp (overrides since)" })),
+      end: Type.Optional(Type.Integer({ description: "End timestamp" })),
       service: Type.Optional(Type.String({ description: "Filter by service name" })),
       limit: Type.Optional(Type.Integer({ description: "Max log entries (default: 50)" })),
     }),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
-      const query = {};
-      if (params.since) query.since = params.since;
-      if (params.service) query.service = params.service;
-      if (params.limit) query.limit = params.limit;
-      return await client.get(`/nodes/${params.node}/journal`, query);
+      const { node: nodeName, ...query } = params;
+      return await client.get(`/nodes/${nodeName}/journal`, query);
     }),
   };
 }
@@ -114,16 +113,23 @@ export function nodeTime(client) {
 export function nodeExecute(client) {
   return {
     name: "proxmox_node_execute",
-    label: "Execute Command on Node",
-    description: "Executes an arbitrary command on the Proxmox host node. Tries the API first (via /execute endpoint), then falls back to SSH. API-only execution requires PROXMOX_PASSWORD for ticket auth fallback. SSH requires your public key in /root/.ssh/authorized_keys. Set PROXMOX_SSH_KEY_PATH for a custom SSH key path.",
+    label: "Execute API Commands on Node",
+    description: "Executes a batch of Proxmox API calls on a node via the /nodes/{node}/execute endpoint. Paths are resolved relative to the node (e.g., 'status', 'qemu', 'version'). Accepts a JSON array of {method, path, body?} objects. Requires PROXMOX_PASSWORD for ticket auth fallback if API token lacks /execute permission.",
     parameters: Type.Object({
       node: Type.String({ description: "Proxmox node name" }),
-      command: Type.String({ description: "Command to execute on the node (e.g., 'cat /etc/hostname')" }),
+      commands: Type.String({ description: "JSON array of API calls, e.g. '[{\"method\":\"GET\",\"path\":\"version\"},{\"method\":\"GET\",\"path\":\"status\"}]'. Paths resolve relative to the node (use 'version', 'status', 'qemu', 'lxc', etc.). Each item has method (GET/POST/PUT/DELETE), path (string), and optional body (object)." }),
     }),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
-      emitProgress(onUpdate, `Executing command on node ${params.node}...`);
-      return await execOnNode(client, params.node, params.command, onUpdate);
+      emitProgress(onUpdate, `Executing batch API commands on node ${params.node}...`);
+      let commands;
+      try {
+        commands = JSON.parse(params.commands);
+      } catch {
+        throw new Error("commands must be valid JSON array of {method, path, body?} objects");
+      }
+      if (!Array.isArray(commands)) throw new Error("commands must be a JSON array");
+      return await execOnNode(client, params.node, commands, onUpdate);
     }),
   };
 }

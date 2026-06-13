@@ -70,14 +70,11 @@ export function clusterLog(client) {
   return {
     name: "proxmox_cluster_log",
     label: "Get Cluster Log",
-    description: "Gets the cluster log with optional filtering.",
-    parameters: Type.Object({ limit: Type.Optional(Type.Integer({ description: "Max log entries (default: 50)" })), since: Type.Optional(Type.String({ description: "Show entries since timestamp" })) }),
+    description: "Gets the cluster log.",
+    parameters: Type.Object({}),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
-      const query = {};
-      if (params.limit) query.limit = params.limit;
-      if (params.since) query.since = params.since;
-      return await client.get("/cluster/log", query);
+      return await client.get("/cluster/log");
     }),
   };
 }

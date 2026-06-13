@@ -447,7 +447,8 @@ export function vmAgentExec(client) {
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
       emitProgress(onUpdate, `Executing command in VM ${params.vmid} via guest agent...`);
-      return await client.post(`/nodes/${params.node}/qemu/${params.vmid}/agent/exec`, { command: params.command });
+      const parts = params.command.split(/\s+/);
+      return await client.post(`/nodes/${params.node}/qemu/${params.vmid}/agent/exec`, { command: parts });
     }),
   };
 }
@@ -465,7 +466,7 @@ export function vmAgentExecStatus(client) {
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
       emitProgress(onUpdate, `Checking exec status for PID ${params.pid} in VM ${params.vmid}...`);
-      return await client.post(`/nodes/${params.node}/qemu/${params.vmid}/agent/exec-status`, { pid: params.pid });
+      return await client.get(`/nodes/${params.node}/qemu/${params.vmid}/agent/exec-status`, { pid: params.pid });
     }),
   };
 }
@@ -499,7 +500,7 @@ export function vmAgentInfo(client) {
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
       emitProgress(onUpdate, `Fetching guest agent info for VM ${params.vmid}...`);
-      return await client.post(`/nodes/${params.node}/qemu/${params.vmid}/agent/info`);
+      return await client.get(`/nodes/${params.node}/qemu/${params.vmid}/agent/info`);
     }),
   };
 }
@@ -515,7 +516,7 @@ export function vmAgentGetHostName(client) {
     }),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
-      return await client.post(`/nodes/${params.node}/qemu/${params.vmid}/agent/get-host-name`);
+      return await client.get(`/nodes/${params.node}/qemu/${params.vmid}/agent/get-host-name`);
     }),
   };
 }
@@ -531,7 +532,7 @@ export function vmAgentGetNetworkInterfaces(client) {
     }),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
-      return await client.post(`/nodes/${params.node}/qemu/${params.vmid}/agent/get-network-interfaces`);
+      return await client.get(`/nodes/${params.node}/qemu/${params.vmid}/agent/get-network-interfaces`);
     }),
   };
 }
@@ -547,7 +548,7 @@ export function vmAgentGetOSInfo(client) {
     }),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
-      return await client.post(`/nodes/${params.node}/qemu/${params.vmid}/agent/get-osinfo`);
+      return await client.get(`/nodes/${params.node}/qemu/${params.vmid}/agent/get-osinfo`);
     }),
   };
 }
@@ -563,7 +564,7 @@ export function vmAgentGetTime(client) {
     }),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
-      return await client.post(`/nodes/${params.node}/qemu/${params.vmid}/agent/get-time`);
+      return await client.get(`/nodes/${params.node}/qemu/${params.vmid}/agent/get-time`);
     }),
   };
 }
@@ -579,7 +580,7 @@ export function vmAgentGetUsers(client) {
     }),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
-      return await client.post(`/nodes/${params.node}/qemu/${params.vmid}/agent/get-users`);
+      return await client.get(`/nodes/${params.node}/qemu/${params.vmid}/agent/get-users`);
     }),
   };
 }
@@ -595,7 +596,7 @@ export function vmAgentGetVcpus(client) {
     }),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
-      return await client.post(`/nodes/${params.node}/qemu/${params.vmid}/agent/get-vcpus`);
+      return await client.get(`/nodes/${params.node}/qemu/${params.vmid}/agent/get-vcpus`);
     }),
   };
 }
@@ -613,7 +614,7 @@ export function vmAgentFileRead(client) {
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
       emitProgress(onUpdate, `Reading ${params.file} from VM ${params.vmid} via guest agent...`);
-      return await client.post(`/nodes/${params.node}/qemu/${params.vmid}/agent/file-read`, { file: params.file });
+      return await client.get(`/nodes/${params.node}/qemu/${params.vmid}/agent/file-read`, { file: params.file });
     }),
   };
 }

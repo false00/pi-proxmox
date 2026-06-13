@@ -1,7 +1,7 @@
 import { ProxmoxClient } from "./proxmox-client.js";
 
 import { vmList, vmStatus, vmConfig, vmStart, vmStop, vmShutdown, vmCreate, vmDelete, vmSnapshot, vmClone, vmMigrate, vmResizeDisk, vmReset, vmResume, vmSuspend, vmReboot, vmUpdateConfig, vmTemplate, vmMoveDisk, vmPendingChanges, vmSnapshotList, vmSnapshotRollback, vmSnapshotDelete, vmAgentExec, vmAgentExecStatus, vmAgentPing, vmAgentInfo, vmAgentGetHostName, vmAgentGetNetworkInterfaces, vmAgentGetOSInfo, vmAgentGetTime, vmAgentGetUsers, vmAgentGetVcpus, vmAgentFileRead, vmAgentFileWrite, vmAgentSetUserPassword } from "./tools/vm.js";
-import { lxcList, lxcStatus, lxcStart, lxcStop, lxcShutdown, lxcCreate, lxcDelete, lxcSnapshot, lxcReset, lxcResume, lxcSuspend, lxcReboot, lxcUpdateConfig, lxcTemplate, lxcResize, lxcTemplateList, lxcPendingChanges, lxcSnapshotList, lxcSnapshotRollback, lxcSnapshotDelete, lxcMigrate, lxcExec } from "./tools/lxc.js";
+import { lxcList, lxcStatus, lxcStart, lxcStop, lxcShutdown, lxcCreate, lxcDelete, lxcSnapshot, lxcReset, lxcResume, lxcSuspend, lxcReboot, lxcUpdateConfig, lxcTemplate, lxcResize, lxcTemplateList, lxcPendingChanges, lxcSnapshotList, lxcSnapshotRollback, lxcSnapshotDelete, lxcMigrate } from "./tools/lxc.js";
 import { nodeList, nodeStatus, nodeServices, nodeServiceRestart, nodeServiceStatus, nodeServiceStart, nodeServiceStop, nodeJournal, nodeDns, nodeTime, nodeExecute, nodeConfig, nodeReboot, nodeStop, nodeAptUpdate, nodeSubscription, nodeHardware, nodeNetworkList } from "./tools/node.js";
 import { storageList, storageContent, storageCreate, storageDetail, storageDelete, storageScan, storageRemoveVolume, poolList, poolCreate, poolDelete } from "./tools/storage.js";
 import { clusterStatus, clusterResources, clusterNextId, clusterVersion, clusterLog, clusterOptions, clusterUpdateOptions, clusterConfig, checkPermissions } from "./tools/cluster.js";
@@ -78,7 +78,6 @@ export default async function (pi) {
     lxcSnapshotRollback(client),
     lxcSnapshotDelete(client),
     lxcMigrate(client),
-    lxcExec(client),
 
     // Nodes
     nodeList(client),

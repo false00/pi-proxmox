@@ -1,5 +1,5 @@
 import { Type } from "@sinclair/typebox";
-import { throwIfAborted, emitProgress, safeExecute, execOnNode } from "../tool-runtime.js";
+import { throwIfAborted, emitProgress, safeExecute } from "../tool-runtime.js";
 
 export function lxcList(client) {
   return {
@@ -320,21 +320,3 @@ export function lxcMigrate(client) {
   };
 }
 
-export function lxcExec(client) {
-  return {
-    name: "proxmox_lxc_exec",
-    label: "Execute Command in Container",
-    description: "Executes a command inside an LXC container. Tries the Proxmox API first (via /execute endpoint), then falls back to SSH running `pct exec`. API-only execution requires PROXMOX_PASSWORD for ticket auth fallback. SSH requires your public key in /root/.ssh/authorized_keys on the Proxmox host. Set PROXMOX_SSH_KEY_PATH in .env for a custom SSH key path.",
-    parameters: Type.Object({
-      node: Type.String({ description: "Proxmox node name" }),
-      vmid: Type.Integer({ description: "Container ID" }),
-      command: Type.String({ description: "Command to execute inside the container (e.g., 'systemctl is-active nginx')" }),
-    }),
-    execute: safeExecute(async (params, signal, onUpdate) => {
-      throwIfAborted(signal);
-      emitProgress(onUpdate, `Executing command in container ${params.vmid} on ${params.node}...`);
-      const pctCmd = `pct exec ${params.vmid} -- ${params.command}`;
-      return await execOnNode(client, params.node, pctCmd, onUpdate);
-    }),
-  };
-}

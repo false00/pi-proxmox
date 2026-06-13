@@ -45,7 +45,12 @@
     ]
   },
   "scripts": {
-    "test": "node --test dist/**/*.test.js",
+    "test": "node tests/run.mjs",
+    "test:auth": "node tests/auth.test.mjs",
+    "test:pagination": "node tests/pagination.test.mjs",
+    "test:vm-agent": "node tests/vm-agent.test.mjs",
+    "test:execute": "node tests/execute.test.mjs",
+    "test:lxc": "node tests/lxc.test.mjs",
     "lint": "echo 'no linter configured'"
   },
   "dependencies": {
