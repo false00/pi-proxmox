@@ -1,5 +1,5 @@
 import { Type } from "@sinclair/typebox";
-import { throwIfAborted, emitProgress, safeExecute } from "../tool-runtime.js";
+import { throwIfAborted, emitProgress, safeExecute, execOnNode } from "../tool-runtime.js";
 
 export function nodeList(client) {
   return {
@@ -123,22 +123,7 @@ export function nodeExecute(client) {
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
       emitProgress(onUpdate, `Executing command on node ${params.node}...`);
-      const endpoint = `/nodes/${params.node}/execute`;
-      try {
-        return await client.post(endpoint, { command: params.command });
-      } catch (err) {
-        if (err.message?.includes("Permission check failed") && client.password) {
-          emitProgress(onUpdate, "API token lacks /execute permission — falling back to password-based ticket auth...");
-          try {
-            return await client.postWithTicketAuth(endpoint, { command: params.command });
-          } catch (ticketErr) {
-            emitProgress(onUpdate, "Ticket auth also failed — attempting SSH fallback...");
-          }
-        } else {
-          emitProgress(onUpdate, "API rejected the command parameter — attempting SSH fallback...");
-        }
-        return await client.execViaSSH(client.host, 22, params.command);
-      }
+      return await execOnNode(client, params.node, params.command, onUpdate);
     }),
   };
 }

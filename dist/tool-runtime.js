@@ -12,6 +12,25 @@ export function emitProgress(onUpdate, msg) {
   }
 }
 
+export async function execOnNode(client, node, command, onUpdate) {
+  const endpoint = `/nodes/${node}/execute`;
+  try {
+    return await client.post(endpoint, { command });
+  } catch (err) {
+    if (err.message?.includes("Permission check failed") && client.password) {
+      emitProgress(onUpdate, "API token lacks /execute permission — falling back to password-based ticket auth...");
+      try {
+        return await client.postWithTicketAuth(endpoint, { command });
+      } catch (ticketErr) {
+        emitProgress(onUpdate, "Ticket auth also failed — attempting SSH fallback...");
+      }
+    } else {
+      emitProgress(onUpdate, "API rejected the command parameter — attempting SSH fallback...");
+    }
+    return await client.execViaSSH(client.host, 22, command);
+  }
+}
+
 export function safeExecute(fn) {
   return async (_toolCallId, params, signal, onUpdate, _ctx) => {
     try {

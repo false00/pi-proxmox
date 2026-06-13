@@ -377,14 +377,7 @@ npm test
 ### Publishing
 
 ```bash
-# 1. Bump version and create git tag
-npm version patch   # or minor / major
-
-# 2. Verify package contents
-npm pack --dry-run
-
-# 3. Publish
-npm publish --ignore-scripts
+npm version patch && npm pack --dry-run && npm publish --ignore-scripts
 ```
 
 This fork's `dist/` is the source of truth (no TS source files). Publish with `--ignore-scripts`.
