@@ -380,7 +380,7 @@ npm test
 npm version patch && npm pack --dry-run && npm publish --ignore-scripts
 ```
 
-This fork's `dist/` is the source of truth (no TS source files). Publish with `--ignore-scripts`.
+The `dist/` directory is the source of truth (no TS source files). Publish with `--ignore-scripts`.
 
 If 2FA is enabled, npm will prompt you to authenticate in the browser before publishing.
 
