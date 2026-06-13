@@ -4,7 +4,7 @@
   "description": "Proxmox VE automation tools for the Pi agent harness — manage VMs, LXC containers, storage, cluster, firewall, and backups via the Proxmox REST API",
   "type": "module",
   "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+
   "files": ["dist", "AGENTS.md", "README.md", "LICENSE"],
   "exports": {
     ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" }
