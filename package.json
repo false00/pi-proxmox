@@ -51,6 +51,7 @@
     "test:vm-agent": "node tests/vm-agent.test.mjs",
     "test:execute": "node tests/execute.test.mjs",
     "test:lxc": "node tests/lxc.test.mjs",
+    "test:vm": "node tests/vm.test.mjs",
     "lint": "echo 'no linter configured'"
   },
   "dependencies": {
