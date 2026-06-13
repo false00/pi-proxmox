@@ -27,6 +27,9 @@
     "infrastructure",
     "false00"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "license": "MIT",
   "engines": {
     "node": ">=20.0.0"
