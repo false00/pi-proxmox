@@ -107,7 +107,13 @@ export function lxcCreate(client) {
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
       emitProgress(onUpdate, `Creating container ${params.vmid} (${params.hostname})...`);
-      return await client.post(`/nodes/${params.node}/lxc`, params);
+      const body = { ...params };
+      delete body.node;
+      if (body.ssh_public_keys) body.ssh_public_keys = encodeURIComponent(body.ssh_public_keys);
+      for (const key of Object.keys(body)) {
+        if (body[key] === "" || body[key] === undefined || body[key] === null) delete body[key];
+      }
+      return await client.post(`/nodes/${params.node}/lxc`, body);
     }),
   };
 }

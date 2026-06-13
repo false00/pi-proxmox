@@ -152,7 +152,13 @@ export function vmCreate(client) {
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
       emitProgress(onUpdate, `Creating VM ${params.vmid} (${params.name}) on ${params.node}...`);
-      return await client.post(`/nodes/${params.node}/qemu`, params);
+      const body = { ...params };
+      delete body.node;
+      if (body.sshkeys) body.sshkeys = encodeURIComponent(body.sshkeys);
+      for (const key of Object.keys(body)) {
+        if (body[key] === "" || body[key] === undefined || body[key] === null) delete body[key];
+      }
+      return await client.post(`/nodes/${params.node}/qemu`, body);
     }),
   };
 }
