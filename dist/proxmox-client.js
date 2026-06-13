@@ -167,6 +167,56 @@ export class ProxmoxClient {
     }
   }
 
+  async upload(path, formData) {
+    await this.authenticate();
+    const url = `${this.baseUrl}${path}`;
+    const headers = {};
+
+    if (this.token) {
+      headers["Authorization"] = `PVEAPIToken=${this.token}`;
+    } else if (this.ticket) {
+      headers["Cookie"] = `PVEAuthCookie=${this.ticket}`;
+      if (this.csrfToken) {
+        headers["CSRFPreventionToken"] = this.csrfToken;
+      }
+    }
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers,
+        body: formData,
+        signal: controller.signal,
+        dispatcher: this._dispatcher,
+      });
+
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { data: text };
+      }
+
+      if (!response.ok) {
+        const msg = data?.errors?.message || data?.message || response.statusText;
+        throw new ProxmoxError(msg, {
+          status: response.status,
+          endpoint: path,
+          method: "POST",
+          retryable: response.status >= 500,
+        });
+      }
+
+      return data.data !== undefined ? data.data : data;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   async _probePermissions() {
     const perms = { canListVMs: true, canListLXCs: true };
     try {

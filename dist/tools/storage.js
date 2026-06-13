@@ -81,6 +81,51 @@ export function poolDelete(client) {
   };
 }
 
+export function storageUpload(client) {
+  return {
+    name: "proxmox_storage_upload",
+    label: "Upload File to Storage",
+    description: "Downloads a file from a URL and uploads it to a Proxmox storage backend as an ISO, container template, or other content type. Supports ISO images, VZ templates, snippets, and more.",
+    parameters: Type.Object({
+      node: Type.String({ description: "Target Proxmox node" }),
+      storage: Type.String({ description: "Storage identifier (e.g., 'local', 'local-lvm')" }),
+      content: Type.Optional(Type.String({ description: "Content type: iso, vztmpl, snippets, backup (default: iso)" })),
+      url: Type.String({ description: "URL to download the file from" }),
+      filename: Type.Optional(Type.String({ description: "Destination filename (derived from URL if omitted)" })),
+    }),
+    execute: safeExecute(async (params, signal, onUpdate) => {
+      throwIfAborted(signal);
+      const content = params.content || "iso";
+      const filename = params.filename || params.url.split("/").pop().split("?")[0];
+
+      emitProgress(onUpdate, `Downloading ${params.url}...`);
+      throwIfAborted(signal);
+
+      const downloadResp = await fetch(params.url, {
+        signal: signal ? signal : undefined,
+        dispatcher: client._dispatcher,
+      });
+      if (!downloadResp.ok) throw new Error(`Download failed: ${downloadResp.status} ${downloadResp.statusText}`);
+
+      const buffer = await downloadResp.arrayBuffer();
+      const totalBytes = buffer.byteLength;
+      emitProgress(onUpdate, `Downloaded ${totalBytes} bytes — uploading to ${params.storage} as ${filename}...`);
+      throwIfAborted(signal);
+
+      const formData = new FormData();
+      formData.append("content", content);
+      formData.append("filename", new Blob([buffer]), filename);
+
+      const result = await client.upload(`/nodes/${params.node}/storage/${params.storage}/upload`, formData);
+      emitProgress(onUpdate, `Uploaded ${filename} to ${params.storage}`);
+      const output = { filename, content, size: totalBytes };
+      if (typeof result === "string") output.task = result;
+      else Object.assign(output, result);
+      return output;
+    }),
+  };
+}
+
 // --- Storage Backends ---
 
 export function storageCreate(client) {

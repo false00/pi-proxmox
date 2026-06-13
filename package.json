@@ -52,6 +52,7 @@
     "test:execute": "node tests/execute.test.mjs",
     "test:lxc": "node tests/lxc.test.mjs",
     "test:vm": "node tests/vm.test.mjs",
+    "test:upload": "node tests/upload.test.mjs",
     "lint": "echo 'no linter configured'"
   },
   "dependencies": {

@@ -130,6 +130,7 @@ Pi will use `proxmox_vm_list`, `proxmox_lxc_create`, `proxmox_cluster_status`, a
 | `proxmox_storage_detail` | Get storage details |
 | `proxmox_storage_delete` | Delete a storage backend |
 | `proxmox_storage_scan` | Scan for available storage resources |
+| `proxmox_storage_upload` | Download a file from a URL and upload it to storage (ISO, template, etc.) |
 | `proxmox_storage_remove_volume` | Remove a volume from storage |
 | `proxmox_pool_list` | List resource pools |
 | `proxmox_pool_create` | Create a resource pool |

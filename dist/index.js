@@ -3,7 +3,7 @@ import { ProxmoxClient } from "./proxmox-client.js";
 import { vmList, vmStatus, vmConfig, vmStart, vmStop, vmShutdown, vmCreate, vmDelete, vmSnapshot, vmClone, vmMigrate, vmResizeDisk, vmReset, vmResume, vmSuspend, vmReboot, vmUpdateConfig, vmTemplate, vmMoveDisk, vmPendingChanges, vmSnapshotList, vmSnapshotRollback, vmSnapshotDelete, vmAgentExec, vmAgentExecStatus, vmAgentPing, vmAgentInfo, vmAgentGetHostName, vmAgentGetNetworkInterfaces, vmAgentGetOSInfo, vmAgentGetTime, vmAgentGetUsers, vmAgentGetVcpus, vmAgentFileRead, vmAgentFileWrite, vmAgentSetUserPassword } from "./tools/vm.js";
 import { lxcList, lxcStatus, lxcStart, lxcStop, lxcShutdown, lxcCreate, lxcDelete, lxcSnapshot, lxcReset, lxcResume, lxcSuspend, lxcReboot, lxcUpdateConfig, lxcTemplate, lxcResize, lxcTemplateList, lxcPendingChanges, lxcSnapshotList, lxcSnapshotRollback, lxcSnapshotDelete, lxcMigrate } from "./tools/lxc.js";
 import { nodeList, nodeStatus, nodeServices, nodeServiceRestart, nodeServiceStatus, nodeServiceStart, nodeServiceStop, nodeJournal, nodeDns, nodeTime, nodeExecute, nodeConfig, nodeReboot, nodeStop, nodeAptUpdate, nodeSubscription, nodeHardware, nodeNetworkList } from "./tools/node.js";
-import { storageList, storageContent, storageCreate, storageDetail, storageDelete, storageScan, storageRemoveVolume, poolList, poolCreate, poolDelete } from "./tools/storage.js";
+import { storageList, storageContent, storageCreate, storageDetail, storageDelete, storageScan, storageUpload, storageRemoveVolume, poolList, poolCreate, poolDelete } from "./tools/storage.js";
 import { clusterStatus, clusterResources, clusterNextId, clusterVersion, clusterLog, clusterOptions, clusterUpdateOptions, clusterConfig, checkPermissions } from "./tools/cluster.js";
 import { backupList, backupCreate, backupDelete } from "./tools/backup.js";
 import { firewallRules, firewallRuleAdd, firewallRulesDelete, firewallOptions, firewallOptionsUpdate, firewallAliases, firewallAliasCreate, firewallAliasDelete, firewallIpsetList, firewallIpsetCreate, firewallIpsetDelete } from "./tools/firewall.js";
@@ -106,6 +106,7 @@ export default async function (pi) {
     storageDetail(client),
     storageDelete(client),
     storageScan(client),
+    storageUpload(client),
     storageRemoveVolume(client),
     poolList(client),
     poolCreate(client),
