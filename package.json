@@ -1,6 +1,6 @@
 {
   "name": "@false00/pi-proxmox",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Proxmox VE automation tools for the Pi agent harness — manage VMs, LXC containers, storage, cluster, firewall, and backups via the Proxmox REST API",
   "type": "module",
   "main": "dist/index.js",
