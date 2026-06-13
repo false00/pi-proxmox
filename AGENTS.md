@@ -58,20 +58,25 @@ Proxmox VE automation tools for the Pi coding agent. Manage VMs (QEMU/KVM), LXC 
 
 When the user asks to publish:
 
-1. **Check the current npm version** in `package.json`
-2. **Check the latest git tag** — should match `v{version}` format
-3. **Verify the git tag matches the npm version.** If version was bumped, the tag must also be updated. If they don't match, create the tag:
+**Critical: never skip npm versions.** Every number in the sequence must be published. If a publish attempt fails (e.g. 2FA), do NOT bump again — fix the issue and publish the same version. If new changes are added after a failed publish, use `npm version` only once right before the successful publish.
+
+1. **Check the current npm version** in `package.json` — this is the next number to publish.
+2. **Check all published versions** on npm:
    ```
-   git tag v{version}
+   npm view @false00/pi-proxmox versions --json
    ```
+3. **If the version in `package.json` is already published**, bump it now with `npm version patch` (only once).
 4. **Dry-run first:** `npm pack --dry-run` to verify the package contents include `dist/`, `AGENTS.md`, `README.md`, `LICENSE`
-5. **Use `npm version patch|minor|major` to bump version** — this updates `package.json` and creates a matching git tag in one step. Do NOT edit `package.json` manually.
-6. **Publish with `--ignore-scripts`:**
+5. **Publish with `--ignore-scripts`:**
    ```
    npm publish --ignore-scripts
    ```
-7. If 2FA is enabled, npm will prompt for browser authentication before completing.
-8. **Increment the package version** if the scope of changes warrants it. Follow semver:
-   - Patch (`0.1.15 → 0.1.16`) for bug fixes and minor doc changes
-   - Minor (`0.1.15 → 0.2.0`) for new tools or behavioral changes
-   - Major (`0.1.15 → 1.0.0`) for breaking changes
+6. If 2FA is enabled, npm will prompt for browser authentication before completing.
+7. **Push the version commit and tag** to GitHub:
+   ```
+   git push origin master --tags
+   ```
+8. **Follow semver** when deciding the bump type:
+   - Patch (`0.1.x → 0.1.y`) for bug fixes and minor doc changes
+   - Minor (`0.1.x → 0.2.0`) for new tools or behavioral changes
+   - Major (`0.1.x → 1.0.0`) for breaking changes
