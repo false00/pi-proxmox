@@ -125,10 +125,46 @@ export function nodeExecute(client) {
       let commands;
       try {
         commands = JSON.parse(params.commands);
-      } catch {
-        throw new Error("commands must be valid JSON array of {method, path, body?} objects");
+      } catch (err) {
+        throw Object.assign(new Error("commands must be valid JSON array of {method, path, body?} objects"), {
+          name: "ProxmoxError",
+          status: 400,
+          category: "validation",
+          guidance: "The 'commands' parameter must be a valid JSON string. Example: '[{\"method\":\"GET\",\"path\":\"version\"}]'",
+          retryable: false,
+        });
       }
-      if (!Array.isArray(commands)) throw new Error("commands must be a JSON array");
+      if (!Array.isArray(commands)) {
+        throw Object.assign(new Error("commands must be a JSON array"), {
+          name: "ProxmoxError",
+          status: 400,
+          category: "validation",
+          guidance: "The 'commands' parameter must be a JSON array, not an object or other type.",
+          retryable: false,
+        });
+      }
+      // Validate each command object
+      for (let i = 0; i < commands.length; i++) {
+        const cmd = commands[i];
+        if (!cmd || typeof cmd !== "object") {
+          throw Object.assign(new Error(`commands[${i}] must be an object with method and path`), {
+            name: "ProxmoxError",
+            status: 400,
+            category: "validation",
+            guidance: "Each command must be an object with 'method' (GET/POST/PUT/DELETE) and 'path' (string).",
+            retryable: false,
+          });
+        }
+        if (!cmd.method || !cmd.path) {
+          throw Object.assign(new Error(`commands[${i}] missing required 'method' or 'path'`), {
+            name: "ProxmoxError",
+            status: 400,
+            category: "validation",
+            guidance: "Each command must have 'method' (GET/POST/PUT/DELETE) and 'path' (string, e.g., 'version', 'qemu', 'status').",
+            retryable: false,
+          });
+        }
+      }
       return await execOnNode(client, params.node, commands, onUpdate);
     }),
   };

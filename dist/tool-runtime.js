@@ -44,6 +44,9 @@ export function safeExecute(fn) {
 
       const message = err?.message || String(err);
       const status = err?.status;
+      const endpoint = err?.endpoint; // From ProxmoxError
+      const method = err?.method; // From ProxmoxError
+
       const isValidation = status === 400;
       const isAuth = status === 401 || status === 403;
       const isNotFound = status === 404;
@@ -69,15 +72,21 @@ export function safeExecute(fn) {
         unknown: `Unexpected error: ${message}`,
       };
 
+      // Build error response with endpoint context
+      const errorResponse = {
+        error: message,
+        category,
+        guidance: guidance[category] || guidance.unknown,
+        retryable: isTimeout || isServerError || isNetwork,
+      };
+      if (endpoint) errorResponse.endpoint = endpoint;
+      if (method) errorResponse.method = method;
+      if (status) errorResponse.httpStatus = status;
+
       return {
         content: [{
           type: "text",
-          text: JSON.stringify({
-            error: message,
-            category,
-            guidance: guidance[category] || guidance.unknown,
-            retryable: isTimeout || isServerError || isNetwork,
-          }, null, 2),
+          text: JSON.stringify(errorResponse, null, 2),
         }],
       };
     }

@@ -90,8 +90,27 @@ export class ProxmoxClient {
       }
 
       if (!response.ok) {
+        // Extract detailed error info from Proxmox API response
         const msg = data?.errors?.message || data?.message || response.statusText;
-        throw new ProxmoxError(msg, {
+        const reason = data?.reason;
+        const errors = data?.errors;
+
+        // Build comprehensive error message
+        let errorMsg = msg;
+        if (reason && reason !== msg) {
+          errorMsg = `${msg}${reason}`;
+        }
+        if (errors && typeof errors === 'object') {
+          const errorEntries = Object.entries(errors)
+            .filter(([k, v]) => k !== 'message' && v)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join('; ');
+          if (errorEntries) {
+            errorMsg = `${msg} (${errorEntries})`;
+          }
+        }
+
+        throw new ProxmoxError(errorMsg, {
           status: response.status,
           endpoint: path,
           method,
@@ -202,8 +221,27 @@ export class ProxmoxClient {
       }
 
       if (!response.ok) {
+        // Extract detailed error info from Proxmox API response
         const msg = data?.errors?.message || data?.message || response.statusText;
-        throw new ProxmoxError(msg, {
+        const reason = data?.reason;
+        const errors = data?.errors;
+
+        // Build comprehensive error message
+        let errorMsg = msg;
+        if (reason && reason !== msg) {
+          errorMsg = `${msg}${reason}`;
+        }
+        if (errors && typeof errors === 'object') {
+          const errorEntries = Object.entries(errors)
+            .filter(([k, v]) => k !== 'message' && v)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join('; ');
+          if (errorEntries) {
+            errorMsg = `${msg} (${errorEntries})`;
+          }
+        }
+
+        throw new ProxmoxError(errorMsg, {
           status: response.status,
           endpoint: path,
           method: "POST",

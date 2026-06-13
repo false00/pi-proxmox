@@ -1,6 +1,32 @@
 import { Type } from "@sinclair/typebox";
 import { throwIfAborted, emitProgress, safeExecute } from "../tool-runtime.js";
 
+/**
+ * Categorizes network fetch errors for consistent error handling.
+ */
+function categorizeFetchError(err, url) {
+  const message = err?.message || String(err);
+  if (message.includes("timed out") || message.includes("aborted")) {
+    return { error: `Download timed out: ${url}`, category: "timeout", guidance: "The download source is slow or unresponsive. Try a different URL or increase timeout.", retryable: true };
+  }
+  if (message.includes("fetch") || message.includes("connect") || message.includes("ENOTFOUND") || message.includes("ECONN") || message.includes("Failed to fetch")) {
+    return { error: `Network error downloading: ${url}`, category: "network", guidance: "Cannot reach the download URL. Verify the URL is accessible and the host has network connectivity.", retryable: true };
+  }
+  if (message.includes("Download failed:")) {
+    // Extract HTTP status from message like "Download failed: 404 Not Found"
+    const statusMatch = message.match(/Download failed: (\d+)/);
+    const status = statusMatch ? parseInt(statusMatch[1]) : 0;
+    if (status === 404) {
+      return { error: message, category: "not_found", guidance: "The download URL returned 404. Check that the file exists at the URL.", retryable: false };
+    }
+    if (status >= 500) {
+      return { error: message, category: "server_error", guidance: "The download source server returned an error. Try again later.", retryable: true };
+    }
+    return { error: message, category: "validation", guidance: "The download URL returned an error. Check the URL and try again.", retryable: false };
+  }
+  return { error: `Download failed: ${message}`, category: "unknown", guidance: "An unexpected error occurred during download.", retryable: false };
+}
+
 export function storageList(client) {
   return {
     name: "proxmox_storage_list",
@@ -101,11 +127,36 @@ export function storageUpload(client) {
       emitProgress(onUpdate, `Downloading ${params.url}...`);
       throwIfAborted(signal);
 
-      const downloadResp = await fetch(params.url, {
-        signal: signal ? signal : undefined,
-        dispatcher: client._dispatcher,
-      });
-      if (!downloadResp.ok) throw new Error(`Download failed: ${downloadResp.status} ${downloadResp.statusText}`);
+      let downloadResp;
+      try {
+        downloadResp = await fetch(params.url, {
+          signal: signal ? signal : undefined,
+          dispatcher: client._dispatcher,
+        });
+      } catch (err) {
+        const categorized = categorizeFetchError(err, params.url);
+        throw Object.assign(new Error(categorized.error), {
+          name: "ProxmoxError",
+          status: 0,
+          category: categorized.category,
+          guidance: categorized.guidance,
+          retryable: categorized.retryable,
+        });
+      }
+
+      if (!downloadResp.ok) {
+        const categorized = categorizeFetchError(
+          new Error(`Download failed: ${downloadResp.status} ${downloadResp.statusText}`),
+          params.url
+        );
+        throw Object.assign(new Error(categorized.error), {
+          name: "ProxmoxError",
+          status: downloadResp.status,
+          category: categorized.category,
+          guidance: categorized.guidance,
+          retryable: categorized.retryable,
+        });
+      }
 
       const buffer = await downloadResp.arrayBuffer();
       const totalBytes = buffer.byteLength;
