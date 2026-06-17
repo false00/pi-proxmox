@@ -28,7 +28,7 @@ SECURITY.md  Vulnerability reporting and security policy
 
 Requirements:
 
-- Node.js 20+
+- Node.js 22+
 - Access to a reachable Proxmox VE environment for integration tests
 - A configured `~/.config/pi-proxmox/.env`
 

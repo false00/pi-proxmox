@@ -188,7 +188,7 @@ If you are evaluating the package for production use, review:
 
 ### Requirements
 
-- Node.js 20+
+- Node.js 22+
 - A Pi runtime with extension support
 - A reachable Proxmox VE cluster over HTTPS
 
@@ -559,7 +559,7 @@ Verified directly from this repository:
 | Pi runtime | `0.79.6` |
 | Proxmox VE release | `9.2` |
 | Proxmox VE version | `9.2.3` |
-| Node.js | `>=20` |
+| Node.js | `>=22` |
 
 See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) for the maintained compatibility notes.
 

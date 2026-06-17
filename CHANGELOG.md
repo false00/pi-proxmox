@@ -6,6 +6,8 @@ The format is intentionally simple and human-readable.
 
 ## Unreleased
 
+## 1.0.0 - 2026-06-17
+
 ### Added
 - Universal API coverage tools:
   - `proxmox_api_call`
@@ -25,6 +27,7 @@ The format is intentionally simple and human-readable.
 - Documentation now includes adoption-focused guidance, tested environment notes, tool-selection guidance, stability guarantees, and operational docs
 - Runtime code now uses the Pi-preferred `typebox` package name in imports
 - `/nodes/{node}/execute` guidance now matches the official API more closely: batched node-relative API requests, not arbitrary shell execution; official `args` is preferred while legacy `body` remains supported
+- Declared Node.js support was tightened from `>=20` to `>=22` to match actual CI/runtime compatibility with the current dependency set
 
 ## 0.2.0 - 2026-06-17
 

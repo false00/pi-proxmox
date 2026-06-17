@@ -9,7 +9,7 @@ This document records the environments verified directly from this repository.
 | Pi runtime | `0.79.6` |
 | Proxmox VE release | `9.2` |
 | Proxmox VE version | `9.2.3` |
-| Node.js | `>=20` supported by package metadata |
+| Node.js | `>=22` supported by package metadata |
 
 ## What this means
 

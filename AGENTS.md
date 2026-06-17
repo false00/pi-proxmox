@@ -30,6 +30,7 @@ The package exists to give the Pi coding agent high-coverage Proxmox VE tooling 
 - The package is intended for **Pi package installation via npm**.
 - The entrypoint must remain registered in `package.json` under `pi.extensions`.
 - Full official API reach is provided by a combination of dedicated tools plus the universal `proxmox_api_call` and `proxmox_api_upload_file` tools.
+- The currently supported Node.js floor is **22+**.
 
 ## Pi package conventions
 
