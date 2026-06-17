@@ -1,82 +1,149 @@
-# `@false00/pi-proxmox`
+# `@false00/pi-proxmox` maintainer guide
 
-Proxmox VE automation tools for the Pi coding agent. Manage VMs (QEMU/KVM), LXC containers, storage, cluster operations, backups, firewalls, and task tracking through the Proxmox REST API.
+This file is the operating manual for agents and maintainers working on `@false00/pi-proxmox`.
 
-## Project structure
+## Mission
 
-- `dist/` — compiled JavaScript output (entry: `dist/index.js`)
-- `dist/tools/` — individual tool implementations (vm, lxc, node, storage, cluster, backup, firewall, etc.)
-- `dist/proxmox-client.js` — Proxmox REST API client with token auth and ticket auth
-- `dist/tool-runtime.js` — shared helpers (`execOnNode`, `safeExecute`, `emitProgress`, `throwIfAborted`)
-- `tests/` — test suites organized by domain (`auth.test.mjs`, `vm-agent.test.mjs`, `lxc.test.mjs`, etc.)
-- Source is JavaScript compiled directly to `dist/` (no separate `src/` directory)
+Keep this package reliable, transparent, and safe for real infrastructure work.
 
-## Key conventions
+The package exists to give the Pi coding agent high-coverage Proxmox VE tooling with predictable runtime behavior, accurate documentation, and conservative release practices.
 
-- **Default export** in `dist/index.js` — the extension function registered with Pi
-- **Tool naming** — all tools prefixed `proxmox_` (e.g. `proxmox_vm_list`, `proxmox_lxc_create`)
-- **Config priority** — `.env` file > constructor params > env vars > defaults
-- **Auth** — API token auth (recommended) with password/ticket fallback for /execute endpoint
-- **Error handling** — tools return standardized error categories: `validation`, `authentication`, `not_found`, `timeout`, `network`, `server_error`, `unknown`
+## Repository map
 
-## Documentation rules
+- `dist/` — source of truth for runtime code; there is no separate `src/` tree
+- `dist/index.js` — default-exported Pi extension entrypoint
+- `dist/tools/` — domain-specific tool definitions
+- `dist/proxmox-client.js` — REST client, auth, request plumbing, upload support
+- `dist/tool-runtime.js` — shared execution helpers such as `safeExecute`, `emitProgress`, and `execOnNode`
+- `tests/` — live integration tests plus Pi-runtime behavior tests
+- `docs/` — bundled Proxmox documentation and API reference material
+- `README.md` — user-facing package documentation
+- `CONTRIBUTING.md` — contributor workflow
+- `SECURITY.md` — security and disclosure policy
 
-- **Documentation must always match code.** When adding/changing a tool parameter, default value, output format, or behavior, update all of:
-  1. The tool's `description` string in `dist/tools/<tool>.js`
-  2. `README.md` — the tools table and any relevant prose
-  3. `AGENTS.md` — if the change affects how an agent should interact with the package
+## Project facts
 
-- **Verify before finishing.** After any code change, grep for stale references:
-  - Old default values
-  - Wrong file paths
-  - Outdated parameter names or descriptions
+- The project is **pure JavaScript**.
+- `dist/` is **committed directly**.
+- There is **no build step** and no `tsconfig.json`.
+- The package is intended for **Pi package installation via npm**.
+- The entrypoint must remain registered in `package.json` under `pi.extensions`.
 
-- **Tool descriptions are agent-facing documentation.** The `description` field on each tool is what the LLM sees. Keep them accurate and concise.
+## Pi package conventions
 
-- **Tests are required for every change.** When adding a new tool, endpoint, feature, or changing behavior, write a test that:
-  1. Exercises the new or changed functionality against a live Proxmox host
-  2. Verifies both success and error paths
-  3. Creates any necessary test resources (VMs, containers, etc.) and **cleans them up** after
-  4. Place test files in `tests/` as `<domain>.test.mjs` and run with `npm run test:<domain>` or `node tests/<domain>.test.mjs`
-  5. Keep the test file in the repo — it serves as documentation and a regression suite
+Follow current Pi package guidance:
 
-## Project quirks
+- Keep the `pi-package` keyword in `package.json`.
+- Preserve `pi.extensions` so Pi can load the package root directly.
+- If package metadata changes, make sure `npm pack --dry-run` still includes the expected runtime files and top-level docs.
+- Tool failures must be **thrown** from `execute()` so Pi marks them as `isError: true`.
+- Partial updates must use the standard Pi `onUpdate({ content: [...] })` shape.
 
-- **`dist/` is committed** — Changes are made directly to the `.js` files in `dist/`. There is no `src/` or separate build step.
-- **No `tsconfig.json`** — No TypeScript source files exist; the project is pure JavaScript.
-- **`execOnNode` shared helper** — `proxmox_node_execute` delegates to `execOnNode(client, node, commands, onUpdate)` in `tool-runtime.js`, which sends batch API calls to the `/nodes/{node}/execute` endpoint with API token → ticket auth fallback. When adding new exec functionality, use this helper instead of duplicating the fallback logic.
-- **No LXC shell exec** — There is no API-based mechanism to execute shell commands inside LXC containers. The QEMU Guest Agent tools provide this for VMs only.
-- **VM agent command splitting** — `proxmox_vm_agent_exec` splits the `command` string on whitespace into an array. This is required because the Proxmox API's `agent/exec` endpoint expects `path` and `arg[]` as separate form parameters; sending them as a single string crashes `pve-api-daemon` (status 596). The tool's `client.post()` uses `flatMap` in `#fetch` to expand array values into repeated form params (e.g., `command=ps&command=aux`).
-- **VM agent exec-status is GET** — `/qemu/{vmid}/agent/exec-status` is a read-only endpoint and must be called with GET, not POST. The same applies to all other read-only agent endpoints (`info`, `file-read`, `get-host-name`, `get-osinfo`, `get-time`, `get-users`, `get-vcpus`).
+## Coding standards
 
-## Commit & publish policy
+- Prefer small, explicit helpers over clever abstractions.
+- Preserve stable tool names; all tools must remain prefixed with `proxmox_`.
+- Keep tool descriptions concise and agent-readable.
+- Do not silently broaden behavior of destructive tools.
+- Favor compatibility with the Proxmox REST API over speculative convenience wrappers.
+- Never fabricate URLs, API paths, or Proxmox response behavior.
 
-- **Never commit without explicit user approval.** Wait for the user to say "commit" or "stage and commit". Do not commit automatically.
-- **Never push or publish without explicit user approval.**
+## Runtime guarantees
 
-### Publishing workflow
+Maintain these behavioral guarantees:
 
-When the user asks to publish:
+- Read/list/status tools return JSON text content Pi can consume.
+- Long-running tools may emit progress updates while running.
+- Runtime failures surface as proper Pi tool errors with standardized categories:
+  - `validation`
+  - `authentication`
+  - `not_found`
+  - `timeout`
+  - `network`
+  - `server_error`
+  - `unknown`
+- `proxmox_node_execute` must continue to use `execOnNode(...)` and preserve API-token → ticket-auth fallback behavior.
 
-**Critical: never skip npm versions.** Every number in the sequence must be published. If a publish attempt fails (e.g. 2FA), do NOT bump again — fix the issue and publish the same version. If new changes are added after a failed publish, use `npm version` only once right before the successful publish.
+## Known Proxmox-specific constraints
 
-1. **Check the current npm version** in `package.json` — this is the next number to publish.
-2. **Check all published versions** on npm:
-   ```
-   npm view @false00/pi-proxmox versions --json
-   ```
-3. **If the version in `package.json` is already published**, bump it now with `npm version patch` (only once).
-4. **Dry-run first:** `npm pack --dry-run` to verify the package contents include `dist/`, `AGENTS.md`, `README.md`, `LICENSE`
-5. **Publish with `--ignore-scripts`:**
-   ```
-   npm publish --ignore-scripts
-   ```
-6. If 2FA is enabled, npm will prompt for browser authentication before completing.
-7. **Push the version commit and tag** to GitHub:
-   ```
-   git push origin master --tags
-   ```
-8. **Follow semver** when deciding the bump type:
-   - Patch (`0.1.x → 0.1.y`) for bug fixes and minor doc changes
-   - Minor (`0.1.x → 0.2.0`) for new tools or behavioral changes
-   - Major (`0.1.x → 1.0.0`) for breaking changes
+- There is **no API-based shell exec for LXC containers** in this package.
+- VM guest execution depends on the **QEMU Guest Agent**.
+- `proxmox_vm_agent_exec` must continue splitting the `command` string on whitespace into an array because the Proxmox endpoint expects `path` plus repeated `arg[]` form values.
+- `/qemu/{vmid}/agent/exec-status` and other read-only agent endpoints must remain **GET** requests.
+
+## Documentation policy
+
+Documentation must match code.
+
+Whenever you change a tool parameter, default value, output format, or runtime behavior, update all affected docs:
+
+1. The tool `description` in `dist/tools/<domain>.js`
+2. `README.md`
+3. `AGENTS.md` if the change affects maintainer or agent expectations
+4. `CONTRIBUTING.md` or `SECURITY.md` if contributor or trust processes changed
+
+Before finishing, grep for stale references:
+
+- old parameter names
+- old defaults
+- outdated auth guidance
+- outdated timeout behavior
+- removed or renamed files
+
+## Testing policy
+
+Every code change should be backed by tests appropriate to the behavior being touched.
+
+Current suites:
+
+- `tests/auth.test.mjs` — auth and basic connectivity
+- `tests/pagination.test.mjs` — pagination behavior
+- `tests/vm-agent.test.mjs` — VM guest-agent behavior
+- `tests/execute.test.mjs` — `/execute` endpoint behavior
+- `tests/lxc.test.mjs` — LXC lifecycle
+- `tests/vm.test.mjs` — VM lifecycle
+- `tests/upload.test.mjs` — storage upload and cleanup
+- `tests/runtime.test.mjs` — Pi runtime behavior, progress, thrown errors, tool timeout
+- `tests/package.test.mjs` — package metadata and trust-signal structure
+
+Expectations:
+
+- Live integration tests must create and clean up their own resources.
+- New features should include both success-path and failure-path coverage.
+- User-facing packaging or documentation changes should have at least one structural or metadata check when feasible.
+- Run `npm test` before considering work complete.
+
+## Security and trust posture
+
+Treat this package as infrastructure automation software, not a toy integration.
+
+- Do not weaken auth handling for convenience.
+- Do not log secrets in code, tests, or documentation.
+- Prefer explicit errors over silent fallback unless a documented fallback already exists.
+- Keep destructive operations obvious in tool naming and docs.
+- If a behavior is uncertain, say so and inspect the code or docs instead of guessing.
+
+## Release discipline
+
+- Never commit without explicit user approval.
+- Never push or publish without explicit user approval.
+- Do not skip npm versions.
+- Dry-run with `npm pack --dry-run` before publish.
+- Publish with `npm publish --ignore-scripts`.
+- Push tags only after a successful publish when the user has asked for release work.
+
+## Release checklist
+
+When asked to prepare a release:
+
+1. Run `npm test`
+2. Run `npm run test:package`
+3. Run `npm pack --dry-run`
+4. Verify `package.json` metadata is current
+5. Verify README and AGENTS reflect the shipped behavior
+6. Check whether the current version is already published before bumping
+7. Only commit, tag, push, or publish with explicit user approval
+
+## Proxmox provisioning guideline
+
+When creating a VM or LXC container in Proxmox, always use the public SSH key stored in `~/.ssh/proxmox_provision.pub` for provisioning purposes.

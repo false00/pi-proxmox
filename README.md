@@ -1,235 +1,48 @@
 # @false00/pi-proxmox
 
-> Proxmox VE automation for the [Pi](https://github.com/badlogic/pi-mono) coding agent. Manage VMs, LXC containers, storage, cluster infrastructure, firewall rules, backups, and task tracking through the Proxmox REST API.
+Production-focused Proxmox VE automation for the Pi coding agent.
 
-| | |
+`@false00/pi-proxmox` exposes **140 Pi tools** for managing Proxmox clusters: VMs, LXC containers, storage, cluster state, firewall rules, backups, HA, replication, access control, and task tracking through the Proxmox REST API.
+
+| Resource | Link |
 |---|---|
 | npm | [`@false00/pi-proxmox`](https://www.npmjs.com/package/@false00/pi-proxmox) |
 | GitHub | [github.com/false00/pi-proxmox](https://github.com/false00/pi-proxmox) |
+| License | [MIT](LICENSE) |
+| Security policy | [SECURITY.md](SECURITY.md) |
+| Contributing guide | [CONTRIBUTING.md](CONTRIBUTING.md) |
 
-## Quick start
+## Why this package
 
-```bash
-pi install npm:@false00/pi-proxmox
-```
+This package is designed for people who want Pi to operate real Proxmox infrastructure without hand-writing API calls.
 
-Then just ask Pi to manage your infrastructure:
+What makes it useful:
 
-```
-> List all VMs on pve1
-> Create a new container with 2GB RAM on pve1
-> Show cluster status
-```
+- **Broad coverage** — 140 tools spanning VM, LXC, storage, cluster, firewall, backup, HA, replication, and task workflows
+- **Agent-friendly responses** — structured JSON output for read/list/status tools, plus progress streaming for long-running operations
+- **Operational safety** — destructive actions are explicit, task-based operations return UPIDs, and tool failures surface as real Pi tool errors
+- **Live-tested behavior** — the repo includes integration tests against a real Proxmox host, including VM/LXC lifecycle tests and runtime-behavior tests
+- **Pi-native packaging** — installable as a Pi package through npm and loadable directly via `pi install` or `pi -e`
 
-Pi will use `proxmox_vm_list`, `proxmox_lxc_create`, `proxmox_cluster_status`, and the rest of the tool suite to interact with your Proxmox cluster. All authentication is handled through the configured API token or credentials.
+## What you get
 
-## Tools
+Tool coverage by area:
 
-### Virtual Machines (QEMU/KVM)
-
-| Tool | Description |
-|------|-------------|
-| `proxmox_vm_list` | List all VMs on a node |
-| `proxmox_vm_status` | Get detailed VM status and config |
-| `proxmox_vm_config` | Get VM configuration |
-| `proxmox_vm_start` | Start a VM |
-| `proxmox_vm_stop` | Force-stop a VM |
-| `proxmox_vm_shutdown` | Graceful ACPI shutdown |
-| `proxmox_vm_reset` | Hard-reset a VM |
-| `proxmox_vm_resume` | Resume a suspended VM |
-| `proxmox_vm_suspend` | Suspend a VM |
-| `proxmox_vm_reboot` | Reboot a VM |
-| `proxmox_vm_create` | Create a new VM |
-| `proxmox_vm_delete` | Delete a VM |
-| `proxmox_vm_update_config` | Update VM configuration |
-| `proxmox_vm_template` | Convert a stopped VM to a template |
-| `proxmox_vm_move_disk` | Move a VM disk to another storage |
-| `proxmox_vm_pending_changes` | List pending config changes |
-| `proxmox_vm_snapshot` | Snapshot a VM (optionally with RAM) |
-| `proxmox_vm_snapshot_list` | List VM snapshots |
-| `proxmox_vm_snapshot_rollback` | Rollback to a VM snapshot |
-| `proxmox_vm_snapshot_delete` | Delete a VM snapshot |
-| `proxmox_vm_clone` | Clone a VM or template |
-| `proxmox_vm_migrate` | Live-migrate a VM to another node |
-| `proxmox_vm_resize_disk` | Resize a VM disk (e.g., +10G) |
-
-### VM QEMU Guest Agent
-
-| Tool | Description |
-|------|-------------|
-| `proxmox_vm_agent_exec` | Execute a command inside a VM (returns PID) |
-| `proxmox_vm_agent_exec_status` | Check execution status/output of a PID |
-| `proxmox_vm_agent_ping` | Ping the QEMU guest agent |
-| `proxmox_vm_agent_info` | Get agent version and supported commands |
-| `proxmox_vm_agent_get_host_name` | Get VM hostname |
-| `proxmox_vm_agent_get_network_interfaces` | Get VM network interfaces |
-| `proxmox_vm_agent_get_osinfo` | Get VM OS information |
-| `proxmox_vm_agent_get_time` | Get VM system time |
-| `proxmox_vm_agent_get_users` | List logged-in users inside VM |
-| `proxmox_vm_agent_get_vcpus` | Get VM VCPU info |
-| `proxmox_vm_agent_file_read` | Read a file from a VM (base64) |
-| `proxmox_vm_agent_file_write` | Write a file to a VM (base64) |
-| `proxmox_vm_agent_set_user_password` | Set a user's password in a VM |
-
-### LXC Containers
-
-| Tool | Description |
-|------|-------------|
-| `proxmox_lxc_list` | List containers on a node |
-| `proxmox_lxc_status` | Get container status and config |
-| `proxmox_lxc_start` | Start a container |
-| `proxmox_lxc_stop` | Stop a container |
-| `proxmox_lxc_shutdown` | Shutdown a container |
-| `proxmox_lxc_reset` | Hard-reset a container |
-| `proxmox_lxc_resume` | Resume a suspended container |
-| `proxmox_lxc_suspend` | Suspend a container |
-| `proxmox_lxc_reboot` | Reboot a container |
-| `proxmox_lxc_create` | Create a container from template |
-| `proxmox_lxc_delete` | Delete a container |
-| `proxmox_lxc_update_config` | Update container configuration |
-| `proxmox_lxc_template` | Convert a stopped container to a template |
-| `proxmox_lxc_template_list` | List cached LXC templates |
-| `proxmox_lxc_resize` | Resize a container mount point |
-| `proxmox_lxc_pending_changes` | List pending config changes |
-| `proxmox_lxc_snapshot` | Snapshot a container |
-| `proxmox_lxc_snapshot_list` | List container snapshots |
-| `proxmox_lxc_snapshot_rollback` | Rollback to a container snapshot |
-| `proxmox_lxc_snapshot_delete` | Delete a container snapshot |
-| `proxmox_lxc_migrate` | Migrate a container to another node |
-
-### Nodes
-
-| Tool | Description |
-|------|-------------|
-| `proxmox_node_list` | List all cluster nodes |
-| `proxmox_node_status` | Get detailed node status |
-| `proxmox_node_config` | Get node configuration |
-| `proxmox_node_services` | List services on a node |
-| `proxmox_node_service_status` | Get detailed service status |
-| `proxmox_node_service_start` | Start a service |
-| `proxmox_node_service_stop` | Stop a service |
-| `proxmox_node_service_restart` | Restart a service |
-| `proxmox_node_journal` | Read systemd journal |
-| `proxmox_node_dns` | Get DNS configuration |
-| `proxmox_node_time` | Get system time/timezone |
-| `proxmox_node_hardware` | List hardware devices |
-| `proxmox_node_network_list` | List network interfaces |
-| `proxmox_node_execute` | Execute batch API calls on a node via /execute |
-| `proxmox_node_reboot` | Reboot the node |
-| `proxmox_node_stop` | Stop (power off) the node |
-| `proxmox_node_apt_update` | Refresh APT package index |
-| `proxmox_node_subscription` | Get subscription status |
-
-### Storage
-
-| Tool | Description |
-|------|-------------|
-| `proxmox_storage_list` | List storage backends on a node |
-| `proxmox_storage_content` | List content on a storage |
-| `proxmox_storage_create` | Create a storage backend |
-| `proxmox_storage_detail` | Get storage details |
-| `proxmox_storage_delete` | Delete a storage backend |
-| `proxmox_storage_scan` | Scan for available storage resources |
-| `proxmox_storage_upload` | Download a file from a URL and upload it to storage (ISO, template, etc.) |
-| `proxmox_storage_remove_volume` | Remove a volume from storage |
-| `proxmox_pool_list` | List resource pools |
-| `proxmox_pool_create` | Create a resource pool |
-| `proxmox_pool_delete` | Delete a resource pool |
-
-### Cluster
-
-| Tool | Description |
-|------|-------------|
-| `proxmox_cluster_status` | Get cluster quorum and status |
-| `proxmox_cluster_resources` | List all cluster resources |
-| `proxmox_cluster_next_id` | Get the next available VM ID |
-| `proxmox_cluster_version` | Get Proxmox version |
-| `proxmox_cluster_log` | Get cluster log |
-| `proxmox_cluster_options` | Get cluster options |
-| `proxmox_cluster_update_options` | Update cluster options |
-| `proxmox_cluster_config` | Get cluster join config |
-| `proxmox_check_permissions` | Probe token permissions |
-
-### Backup
-
-| Tool | Description |
-|------|-------------|
-| `proxmox_backup_list` | List backup jobs |
-| `proxmox_backup_create` | Create a backup job |
-| `proxmox_backup_delete` | Delete a backup job |
-
-### Firewall
-
-| Tool | Description |
-|------|-------------|
-| `proxmox_firewall_rules` | List firewall rules (cluster/node/vm/lxc) |
-| `proxmox_firewall_rule_add` | Add a firewall rule |
-| `proxmox_firewall_rules_delete` | Delete a firewall rule |
-| `proxmox_firewall_options` | Get firewall options |
-| `proxmox_firewall_options_update` | Update firewall options |
-| `proxmox_firewall_aliases` | List firewall aliases |
-| `proxmox_firewall_alias_create` | Create a firewall alias |
-| `proxmox_firewall_alias_delete` | Delete a firewall alias |
-| `proxmox_firewall_ipset_list` | List IPSets |
-| `proxmox_firewall_ipset_create` | Create an IPSet |
-| `proxmox_firewall_ipset_delete` | Delete an IPSet |
-
-### Access Control
-
-| Tool | Description |
-|------|-------------|
-| `proxmox_user_list` | List users |
-| `proxmox_user_create` | Create a user |
-| `proxmox_user_detail` | Get user details |
-| `proxmox_user_delete` | Delete a user |
-| `proxmox_group_list` | List groups |
-| `proxmox_group_create` | Create a group |
-| `proxmox_group_delete` | Delete a group |
-| `proxmox_role_list` | List roles |
-| `proxmox_role_create` | Create a role |
-| `proxmox_role_delete` | Delete a role |
-| `proxmox_acl_list` | List ACL entries |
-| `proxmox_acl_update` | Update ACL (add/remove) |
-| `proxmox_token_list` | List API tokens for a user |
-| `proxmox_token_create` | Create an API token |
-| `proxmox_token_delete` | Delete an API token |
-| `proxmox_domain_list` | List authentication domains |
-
-### High Availability
-
-| Tool | Description |
-|------|-------------|
-| `proxmox_ha_status` | Get HA status |
-| `proxmox_ha_resources_list` | List HA resources |
-| `proxmox_ha_resource_create` | Add a resource to HA |
-| `proxmox_ha_resource_delete` | Remove a resource from HA |
-| `proxmox_ha_groups_list` | List HA groups |
-| `proxmox_ha_group_create` | Create an HA group |
-| `proxmox_ha_group_delete` | Delete an HA group |
-
-### Storage Replication
-
-| Tool | Description |
-|------|-------------|
-| `proxmox_replication_list` | List replication jobs |
-| `proxmox_replication_create` | Create a replication job |
-| `proxmox_replication_delete` | Delete a replication job |
-| `proxmox_replication_run` | Trigger a replication sync |
-| `proxmox_replication_log` | Get replication job log |
-
-### Tasks
-
-| Tool | Description |
-|------|-------------|
-| `proxmox_task_list` | List recent tasks |
-| `proxmox_task_status` | Get task status by UPID |
-| `proxmox_task_log` | Get task log output |
-
-All tools that return structured data (list, status, config) output JSON. Tools that trigger asynchronous operations (create, start, shutdown, clone, migrate) return the task UPID for tracking progress via `proxmox_task_status` and `proxmox_task_log`.
-
-The VM QEMU Guest Agent tools (`proxmox_vm_agent_exec*`) provide command execution inside VMs. The `command` parameter is split on whitespace into individual arguments before being sent to the QEMU Guest Agent's `guest-exec` API (which expects `path` + `arg[]` as separate values). Use `proxmox_vm_agent_exec_status` via the returned PID to check completion and get output.
-
-For LXC containers, there is no API-based shell exec mechanism — use the QEMU Agent in VMs or configure SSH access at the host level.
+| Area | Tool count |
+|---|---:|
+| Virtual machines | 23 |
+| VM guest agent | 13 |
+| LXC containers | 21 |
+| Nodes | 18 |
+| Storage + pools | 11 |
+| Cluster | 9 |
+| Backup | 3 |
+| Firewall | 11 |
+| Access control | 16 |
+| High availability | 7 |
+| Replication | 5 |
+| Tasks | 3 |
+| **Total** | **140** |
 
 ## Install
 
@@ -239,39 +52,60 @@ Install into Pi as a package:
 pi install npm:@false00/pi-proxmox
 ```
 
-Or load it for a single run:
+Use it for a single run without changing your settings:
 
 ```bash
 pi -e npm:@false00/pi-proxmox
 ```
 
-For local development from this repo:
+For local development from this repository:
 
 ```bash
 pi -e .
 ```
 
-## Pagination
+## Quick start
 
-Several tools accept optional `start` (offset) and `limit` parameters for pagination. These map directly to Proxmox's `start` and `limit` query parameters on supported endpoints:
+After installing, ask Pi to operate your Proxmox cluster in plain English:
 
-| Tool | Endpoint | `start` type |
-|------|----------|-------------|
-| `proxmox_task_list` | `/nodes/{node}/tasks` | integer offset |
-| `proxmox_task_log` | `/nodes/{node}/tasks/{upid}/log` | integer offset |
-| `proxmox_node_journal` | `/nodes/{node}/journal` | timestamp (Unix epoch) |
+```text
+List all VMs on pve1
+Create a Debian container with 2GB RAM on pve1
+Show cluster status
+Resize disk scsi0 on VM 101 by +20G
+Check recent tasks on pve1
+```
 
-The `start` parameter on journal endpoints is a Unix timestamp, not a row offset. Pass `start` and `end` as epoch seconds to set the time window. Not all Proxmox versions support pagination parameters on every endpoint — unsupported parameters return a 400 error from the API (the tools are designed to let the LLM try, and errors are surfaced clearly).
+Pi will call tools like `proxmox_vm_list`, `proxmox_lxc_create`, `proxmox_cluster_status`, and `proxmox_task_list` behind the scenes.
+
+## Trust, safety, and operating model
+
+This is a **full-access infrastructure package**. Like any Pi extension, it can perform real changes in your environment if Pi is allowed to call its tools.
+
+Important expectations:
+
+- The package **does not shell into LXC containers**; Proxmox does not expose a comparable API for that
+- VM in-guest command execution is only available through the **QEMU Guest Agent** tools
+- Destructive operations such as delete, stop, reboot, rollback, firewall changes, and ACL updates are exposed as explicit tools
+- Long-running operations return Proxmox task identifiers or agent PIDs so Pi can continue tracking them
+- Runtime failures are thrown back to Pi as **proper tool errors**, not fake success payloads
+
+If you are evaluating the package for production use, review:
+
+- [SECURITY.md](SECURITY.md)
+- [AGENTS.md](AGENTS.md)
+- [tests/](tests/) for behavioral coverage
+- [docs/](docs/) for the bundled Proxmox API reference material used by the project
 
 ## Configuration
 
-### Required
+### Requirements
 
 - Node.js 20+
-- A Pi runtime that supports extensions
-- Access to a Proxmox VE cluster reachable over HTTPS
+- A Pi runtime with extension support
+- A reachable Proxmox VE cluster over HTTPS
 
-### Connection
+### Connection settings
 
 Create `~/.config/pi-proxmox/.env`:
 
@@ -289,98 +123,376 @@ PROXMOX_TOKEN_SECRET=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 PROXMOX_USERNAME=root@pam
 PROXMOX_PASSWORD=yourpassword
 
-# --- Timeout ---
+# --- Timeouts ---
 PROXMOX_TIMEOUT_MS=30000
+PROXMOX_TOOL_TIMEOUT_MS=30000
 ```
-
-> **Create an admin token** (required to run all tools): API tokens must be created with **full privileges** to access VMs, containers, storage, cluster status, and all other endpoints.
->
-> **Web UI:** Go to **Datacenter > Permissions > API Tokens**, click **Add**, select your user (e.g. `root@pam`), enter a Token ID (e.g. `automation`), and **make sure "Privilege Separation" is unchecked** ❗️ This checkbox is ON by default — you MUST uncheck it or the token will silently return empty results for VMs, containers, storage, and other resources. Copy the displayed Token ID and Secret.
->
-> **CLI (recommended):** `pveum user token add root@pam automation --privsep=0`  
-> The `--privsep=0` flag is critical — it disables privilege separation and gives the token full admin access. Without it (or with `--privsep=1`), the token will silently return empty results for VMs, containers, storage, and other resources.
->
-> **Token ID format:** `USER@REALM!TOKENNAME` — for example `root@pam!automation` or `john@pve!my-token-01`. The parts are the Proxmox username (`root`), realm (`pam` for PAM users), and your chosen token name. Token names can contain letters, numbers, and hyphens (no spaces or underscores). The full string with both `@` and `!` goes into `PROXMOX_TOKEN_ID` in your `.env`.
->
-> Store the `.env` with restricted permissions: `chmod 600 ~/.config/pi-proxmox/.env`
 
 Values in `~/.config/pi-proxmox/.env` take precedence over environment variables.
 
+### Recommended token setup
+
+> **Create an admin token with privilege separation disabled** if you want the full toolset to work.
+>
+> **Web UI:** Go to **Datacenter → Permissions → API Tokens**, click **Add**, select your user (for example `root@pam`), enter a token name (for example `automation`), and **uncheck _Privilege Separation_**.
+>
+> **CLI:**
+>
+> ```bash
+> pveum user token add root@pam automation --privsep=0
+> ```
+>
+> Without `--privsep=0` or with privilege separation left enabled in the UI, the token can appear to work while silently returning empty results for resources like VMs, containers, or storage.
+
+### Token format
+
+`PROXMOX_TOKEN_ID` uses the format:
+
+```text
+USER@REALM!TOKENNAME
+```
+
+Examples:
+
+- `root@pam!automation`
+- `john@pve!ops-bot`
+
+Store the `.env` file with restricted permissions when possible:
+
+```bash
+chmod 600 ~/.config/pi-proxmox/.env
+```
+
 ### Environment variables
 
-**Connection**
-
 | Variable | Purpose |
-|----------|---------|
+|---|---|
 | `PROXMOX_HOST` | Proxmox server hostname or IP |
-| `PROXMOX_PORT` | HTTPS port (default: 8006) |
-| `PROXMOX_TOKEN_ID` | Token ID (e.g., `root@pam!automation`) |
+| `PROXMOX_PORT` | HTTPS port, default `8006` |
+| `PROXMOX_TOKEN_ID` | Token ID such as `root@pam!automation` |
 | `PROXMOX_TOKEN_SECRET` | Token secret UUID |
-| `PROXMOX_USERNAME` | Proxmox username (e.g., `root@pam`) |
-| `PROXMOX_PASSWORD` | Password (used when no API token is set) |
-| `PROXMOX_VERIFY_SSL` | Verify TLS certificate (`true`/`false`, default: `false`) |
-
-**Timeouts**
-
-| Variable | Purpose |
-|----------|---------|
-| `PROXMOX_TIMEOUT_MS` | API request timeout (default: 30000) |
-| `PROXMOX_TOOL_TIMEOUT_MS` | Tool execution timeout (default: 30000) |
+| `PROXMOX_USERNAME` | Username for password-based auth fallback |
+| `PROXMOX_PASSWORD` | Password for password-based auth fallback |
+| `PROXMOX_VERIFY_SSL` | Verify TLS certificates, `true` or `false` |
+| `PROXMOX_TIMEOUT_MS` | Per-request API timeout in milliseconds |
+| `PROXMOX_TOOL_TIMEOUT_MS` | Total Pi tool execution timeout in milliseconds |
 
 ### Configuration priority
 
-1. `~/.config/pi-proxmox/.env` file (highest)
-2. Constructor parameters (when embedding the client directly)
+1. `~/.config/pi-proxmox/.env`
+2. Constructor options when embedding the client directly
 3. Environment variables
-4. Default values
+4. Built-in defaults
 
-## Error handling
+## Runtime behavior
 
-Tools return errors with standardized categories to help Pi respond appropriately:
+### Output model
+
+- List, status, config, and inspection tools return **JSON text** for Pi to consume
+- Long-running tools can stream **progress updates** into Pi via `onUpdate(...)`
+- Many asynchronous Proxmox operations return a **task UPID**
+- Guest-agent execution returns a **PID** that can be checked with `proxmox_vm_agent_exec_status`
+
+### Error model
+
+Tool failures are thrown back to Pi as proper tool errors. The error message body is JSON with fields such as:
+
+- `error`
+- `category`
+- `guidance`
+- `retryable`
+- `endpoint`
+- `method`
+- `httpStatus`
+
+Standard error categories:
 
 | Category | Meaning |
-|----------|---------|
-| `validation` | Invalid parameters — check parameter types and values |
-| `authentication` | Bad credentials or expired token — verify `.env` file |
-| `not_found` | Resource doesn't exist — check IDs and paths |
-| `timeout` | Request timed out — node may be busy; increase `PROXMOX_TIMEOUT_MS` |
-| `network` | Cannot connect to host — verify `PROXMOX_HOST` and network |
-| `server_error` | Proxmox node error — check node status |
-| `unknown` | Unexpected error — see message for details |
+|---|---|
+| `validation` | Invalid tool parameters |
+| `authentication` | Bad credentials, missing privileges, or expired auth |
+| `not_found` | Requested VM, container, storage, or path does not exist |
+| `timeout` | Request or tool runtime timed out |
+| `network` | Connection failure to the Proxmox host |
+| `server_error` | Proxmox returned a server-side failure |
+| `unknown` | Unexpected error outside the known categories |
 
-Errors with category `timeout`, `server_error`, or `network` are marked retryable.
+Errors in `timeout`, `network`, and `server_error` categories are marked retryable.
+
+## Tool catalog
+
+### Virtual Machines (QEMU/KVM)
+
+| Tool | Description |
+|---|---|
+| `proxmox_vm_list` | List all VMs on a node |
+| `proxmox_vm_status` | Get detailed VM status and config |
+| `proxmox_vm_config` | Get VM configuration |
+| `proxmox_vm_start` | Start a VM |
+| `proxmox_vm_stop` | Force-stop a VM |
+| `proxmox_vm_shutdown` | Graceful ACPI shutdown |
+| `proxmox_vm_reset` | Hard-reset a VM |
+| `proxmox_vm_resume` | Resume a suspended VM |
+| `proxmox_vm_suspend` | Suspend a VM |
+| `proxmox_vm_reboot` | Reboot a VM |
+| `proxmox_vm_create` | Create a new VM |
+| `proxmox_vm_delete` | Delete a VM |
+| `proxmox_vm_update_config` | Update VM configuration |
+| `proxmox_vm_template` | Convert a stopped VM to a template |
+| `proxmox_vm_move_disk` | Move a VM disk to another storage |
+| `proxmox_vm_pending_changes` | List pending config changes |
+| `proxmox_vm_snapshot` | Snapshot a VM |
+| `proxmox_vm_snapshot_list` | List VM snapshots |
+| `proxmox_vm_snapshot_rollback` | Roll back to a VM snapshot |
+| `proxmox_vm_snapshot_delete` | Delete a VM snapshot |
+| `proxmox_vm_clone` | Clone a VM or template |
+| `proxmox_vm_migrate` | Migrate a VM to another node |
+| `proxmox_vm_resize_disk` | Resize a VM disk |
+
+### VM QEMU Guest Agent
+
+| Tool | Description |
+|---|---|
+| `proxmox_vm_agent_exec` | Execute a command inside a VM |
+| `proxmox_vm_agent_exec_status` | Get execution status and output by PID |
+| `proxmox_vm_agent_ping` | Ping the guest agent |
+| `proxmox_vm_agent_info` | Get guest-agent version and supported commands |
+| `proxmox_vm_agent_get_host_name` | Get VM hostname |
+| `proxmox_vm_agent_get_network_interfaces` | Get VM network interfaces |
+| `proxmox_vm_agent_get_osinfo` | Get VM OS information |
+| `proxmox_vm_agent_get_time` | Get VM system time |
+| `proxmox_vm_agent_get_users` | List logged-in users |
+| `proxmox_vm_agent_get_vcpus` | Get VCPU info |
+| `proxmox_vm_agent_file_read` | Read a file from a VM |
+| `proxmox_vm_agent_file_write` | Write a file to a VM |
+| `proxmox_vm_agent_set_user_password` | Set a user's password inside a VM |
+
+### LXC Containers
+
+| Tool | Description |
+|---|---|
+| `proxmox_lxc_list` | List containers on a node |
+| `proxmox_lxc_status` | Get container status and config |
+| `proxmox_lxc_start` | Start a container |
+| `proxmox_lxc_stop` | Stop a container |
+| `proxmox_lxc_shutdown` | Shut down a container |
+| `proxmox_lxc_reset` | Hard-reset a container |
+| `proxmox_lxc_resume` | Resume a suspended container |
+| `proxmox_lxc_suspend` | Suspend a container |
+| `proxmox_lxc_reboot` | Reboot a container |
+| `proxmox_lxc_create` | Create a container from template |
+| `proxmox_lxc_delete` | Delete a container |
+| `proxmox_lxc_update_config` | Update container configuration |
+| `proxmox_lxc_template` | Convert a stopped container to a template |
+| `proxmox_lxc_template_list` | List cached LXC templates |
+| `proxmox_lxc_resize` | Resize a mount point |
+| `proxmox_lxc_pending_changes` | List pending config changes |
+| `proxmox_lxc_snapshot` | Snapshot a container |
+| `proxmox_lxc_snapshot_list` | List container snapshots |
+| `proxmox_lxc_snapshot_rollback` | Roll back to a container snapshot |
+| `proxmox_lxc_snapshot_delete` | Delete a container snapshot |
+| `proxmox_lxc_migrate` | Migrate a container |
+
+### Nodes
+
+| Tool | Description |
+|---|---|
+| `proxmox_node_list` | List cluster nodes |
+| `proxmox_node_status` | Get detailed node status |
+| `proxmox_node_config` | Get node configuration |
+| `proxmox_node_services` | List services on a node |
+| `proxmox_node_service_status` | Get detailed service status |
+| `proxmox_node_service_start` | Start a service |
+| `proxmox_node_service_stop` | Stop a service |
+| `proxmox_node_service_restart` | Restart a service |
+| `proxmox_node_journal` | Read systemd journal |
+| `proxmox_node_dns` | Get DNS configuration |
+| `proxmox_node_time` | Get system time and timezone |
+| `proxmox_node_hardware` | List hardware devices |
+| `proxmox_node_network_list` | List network interfaces |
+| `proxmox_node_execute` | Execute batch API calls via `/execute` |
+| `proxmox_node_reboot` | Reboot the node |
+| `proxmox_node_stop` | Power off the node |
+| `proxmox_node_apt_update` | Refresh the APT package index |
+| `proxmox_node_subscription` | Get subscription status |
+
+### Storage and pools
+
+| Tool | Description |
+|---|---|
+| `proxmox_storage_list` | List storage backends on a node |
+| `proxmox_storage_content` | List content on a storage backend |
+| `proxmox_storage_create` | Create a storage backend |
+| `proxmox_storage_detail` | Get storage details |
+| `proxmox_storage_delete` | Delete a storage backend |
+| `proxmox_storage_scan` | Scan for available storage resources |
+| `proxmox_storage_upload` | Download from URL and upload to Proxmox storage |
+| `proxmox_storage_remove_volume` | Remove a storage volume |
+| `proxmox_pool_list` | List resource pools |
+| `proxmox_pool_create` | Create a resource pool |
+| `proxmox_pool_delete` | Delete a resource pool |
+
+### Cluster
+
+| Tool | Description |
+|---|---|
+| `proxmox_cluster_status` | Get cluster quorum and status |
+| `proxmox_cluster_resources` | List cluster resources |
+| `proxmox_cluster_next_id` | Get the next available VM or CT ID |
+| `proxmox_cluster_version` | Get Proxmox version information |
+| `proxmox_cluster_log` | Get the cluster log |
+| `proxmox_cluster_options` | Get cluster options |
+| `proxmox_cluster_update_options` | Update cluster options |
+| `proxmox_cluster_config` | Get cluster join configuration |
+| `proxmox_check_permissions` | Probe current token permissions |
+
+### Backup
+
+| Tool | Description |
+|---|---|
+| `proxmox_backup_list` | List backup jobs |
+| `proxmox_backup_create` | Create a backup job |
+| `proxmox_backup_delete` | Delete a backup job |
+
+### Firewall
+
+| Tool | Description |
+|---|---|
+| `proxmox_firewall_rules` | List firewall rules |
+| `proxmox_firewall_rule_add` | Add a firewall rule |
+| `proxmox_firewall_rules_delete` | Delete a firewall rule |
+| `proxmox_firewall_options` | Get firewall options |
+| `proxmox_firewall_options_update` | Update firewall options |
+| `proxmox_firewall_aliases` | List firewall aliases |
+| `proxmox_firewall_alias_create` | Create a firewall alias |
+| `proxmox_firewall_alias_delete` | Delete a firewall alias |
+| `proxmox_firewall_ipset_list` | List IPSets |
+| `proxmox_firewall_ipset_create` | Create an IPSet |
+| `proxmox_firewall_ipset_delete` | Delete an IPSet |
+
+### Access control
+
+| Tool | Description |
+|---|---|
+| `proxmox_user_list` | List users |
+| `proxmox_user_create` | Create a user |
+| `proxmox_user_detail` | Get user details |
+| `proxmox_user_delete` | Delete a user |
+| `proxmox_group_list` | List groups |
+| `proxmox_group_create` | Create a group |
+| `proxmox_group_delete` | Delete a group |
+| `proxmox_role_list` | List roles |
+| `proxmox_role_create` | Create a role |
+| `proxmox_role_delete` | Delete a role |
+| `proxmox_acl_list` | List ACL entries |
+| `proxmox_acl_update` | Add or remove ACL entries |
+| `proxmox_token_list` | List API tokens for a user |
+| `proxmox_token_create` | Create an API token |
+| `proxmox_token_delete` | Delete an API token |
+| `proxmox_domain_list` | List authentication domains |
+
+### High availability
+
+| Tool | Description |
+|---|---|
+| `proxmox_ha_status` | Get HA status |
+| `proxmox_ha_resources_list` | List HA resources |
+| `proxmox_ha_resource_create` | Add a resource to HA |
+| `proxmox_ha_resource_delete` | Remove a resource from HA |
+| `proxmox_ha_groups_list` | List HA groups |
+| `proxmox_ha_group_create` | Create an HA group |
+| `proxmox_ha_group_delete` | Delete an HA group |
+
+### Replication
+
+| Tool | Description |
+|---|---|
+| `proxmox_replication_list` | List replication jobs |
+| `proxmox_replication_create` | Create a replication job |
+| `proxmox_replication_delete` | Delete a replication job |
+| `proxmox_replication_run` | Trigger replication sync |
+| `proxmox_replication_log` | Get replication job log |
+
+### Tasks
+
+| Tool | Description |
+|---|---|
+| `proxmox_task_list` | List recent tasks |
+| `proxmox_task_status` | Get task status by UPID |
+| `proxmox_task_log` | Get task log output |
+
+## Pagination notes
+
+Several tools accept optional `start` and `limit` parameters. These map directly to Proxmox pagination or time-window query parameters.
+
+| Tool | Endpoint | `start` semantics |
+|---|---|---|
+| `proxmox_task_list` | `/nodes/{node}/tasks` | integer offset |
+| `proxmox_task_log` | `/nodes/{node}/tasks/{upid}/log` | integer offset |
+| `proxmox_node_journal` | `/nodes/{node}/journal` | Unix timestamp |
+
+For journal queries, `start` and `end` are epoch timestamps, not row offsets.
+
+## Repository layout
+
+```text
+dist/                     Runtime extension code committed directly to the repo
+  index.js                Pi extension entrypoint
+  proxmox-client.js       REST client and auth logic
+  tool-runtime.js         Shared tool execution helpers
+  tools/                  Domain tool definitions
+
+docs/                     Bundled Proxmox API reference material
+
+tests/                    Live integration and runtime-behavior tests
+
+README.md                 User-facing package documentation
+AGENTS.md                 Agent/maintainer guidance
+CONTRIBUTING.md           Contributor workflow
+SECURITY.md               Security and disclosure policy
+```
 
 ## Development
 
 ```bash
 npm install
-npm test              # run all test suites
-npm run test:auth     # auth & connection
+npm test
+npm run test:auth
 npm run test:pagination
-npm run test:vm-agent # VM agent exec, file-read, etc.
-npm run test:execute   # batch API execute
-npm run test:lxc      # LXC container lifecycle
+npm run test:vm-agent
+npm run test:execute
+npm run test:lxc
+npm run test:vm
+npm run test:upload
+npm run test:runtime
+npm run test:package
 ```
 
-Test suites live in `tests/` and run against a live Proxmox host configured via the `.env` file. Each suite creates and cleans up its own resources.
+### Test philosophy
 
-### Publishing
+This project prefers **real integration coverage** over mock-heavy tests.
+
+- API/auth behavior is tested against a real Proxmox host
+- VM and LXC lifecycle tests create resources and clean them up
+- Runtime tests verify Pi-specific behavior such as progress streaming, thrown tool errors, and tool timeout handling
+- Package tests verify repository metadata and published-package structure
+
+## Publishing
 
 ```bash
-npm version patch && npm pack --dry-run && npm publish --ignore-scripts
+npm pack --dry-run
+npm publish --ignore-scripts
 ```
 
-The `dist/` directory is the source of truth (no TS source files). Publish with `--ignore-scripts`.
-
-If 2FA is enabled, npm will prompt you to authenticate in the browser before publishing.
-
-The package manifest in `package.json` exposes the compiled extension entrypoint via `pi.extensions`, which lets Pi load the package root directly after install.
+Publishing guidance, versioning rules, and release discipline live in [AGENTS.md](AGENTS.md).
 
 ## See also
 
-- [AGENTS.md](AGENTS.md) — Agent-facing tool usage reference
-- [docs/](docs/) — Full Proxmox VE API reference covering all 398+ API endpoints
+- [AGENTS.md](AGENTS.md) — maintainer and agent instructions
+- [CONTRIBUTING.md](CONTRIBUTING.md) — contributor workflow
+- [SECURITY.md](SECURITY.md) — security policy and disclosure instructions
+- [docs/](docs/) — bundled Proxmox reference material
 
 ## License
 
-MIT — Copyright (c) 2026 false00 & contributors.
+MIT — see [LICENSE](LICENSE).

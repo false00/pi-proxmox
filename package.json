@@ -1,13 +1,15 @@
 {
   "name": "@false00/pi-proxmox",
-  "version": "0.1.16",
-  "description": "Proxmox VE automation tools for the Pi agent harness — manage VMs, LXC containers, storage, cluster, firewall, and backups via the Proxmox REST API",
+  "version": "0.2.0",
+  "description": "Production-focused Proxmox VE automation tools for the Pi coding agent — VMs, LXC, storage, cluster, firewall, backup, HA, replication, and access control via the REST API",
   "type": "module",
   "main": "dist/index.js",
   "files": [
     "dist",
     "AGENTS.md",
+    "CONTRIBUTING.md",
     "README.md",
+    "SECURITY.md",
     "LICENSE"
   ],
   "exports": {
@@ -19,12 +21,15 @@
   "keywords": [
     "pi-package",
     "pi-extension",
+    "pi-coding-agent",
     "proxmox",
     "proxmox-ve",
     "virtualization",
     "vm-management",
     "lxc",
+    "homelab",
     "infrastructure",
+    "automation",
     "false00"
   ],
   "publishConfig": {
@@ -37,7 +42,15 @@
   "author": "false00 <jortega@curl.red>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/false00/pi-proxmox"
+    "url": "git+https://github.com/false00/pi-proxmox.git"
+  },
+  "homepage": "https://github.com/false00/pi-proxmox#readme",
+  "bugs": {
+    "url": "https://github.com/false00/pi-proxmox/issues"
+  },
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
   },
   "pi": {
     "extensions": [
@@ -53,6 +66,8 @@
     "test:lxc": "node tests/lxc.test.mjs",
     "test:vm": "node tests/vm.test.mjs",
     "test:upload": "node tests/upload.test.mjs",
+    "test:runtime": "node tests/runtime.test.mjs",
+    "test:package": "node tests/package.test.mjs",
     "lint": "echo 'no linter configured'"
   },
   "dependencies": {
@@ -60,6 +75,6 @@
     "undici": "^8.4.1"
   },
   "peerDependencies": {
-    "@mariozechner/pi-coding-agent": "*"
+    "@earendil-works/pi-coding-agent": "*"
   }
 }

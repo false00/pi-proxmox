@@ -1,5 +1,4 @@
 import { loadConfig } from "./config.js";
-import { resolveToolTimeoutMs } from "./tool-settings.js";
 import { Agent } from "undici";
 
 export class ProxmoxError extends Error {
