@@ -19,9 +19,31 @@ export function emitProgress(onUpdate, msg) {
   }
 }
 
+export function normalizeExecuteCommands(commands) {
+  return commands.map((command, index) => {
+    if (!command || typeof command !== "object") {
+      throw Object.assign(new Error(`commands[${index}] must be an object with method and path`), {
+        name: "ProxmoxError",
+        status: 400,
+        category: "validation",
+        guidance: "Each command must be an object with 'method' (GET/POST/PUT/DELETE) and 'path' (string).",
+        retryable: false,
+      });
+    }
+
+    const normalized = { ...command };
+    if (normalized.args === undefined && normalized.body !== undefined) {
+      normalized.args = normalized.body;
+    }
+    delete normalized.body;
+    return normalized;
+  });
+}
+
 export async function execOnNode(client, node, commands, onUpdate) {
   const endpoint = `/nodes/${node}/execute`;
-  const body = { commands: JSON.stringify(commands) };
+  const normalizedCommands = normalizeExecuteCommands(commands);
+  const body = { commands: JSON.stringify(normalizedCommands) };
   try {
     return await client.post(endpoint, body);
   } catch (err) {

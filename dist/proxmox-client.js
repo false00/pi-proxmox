@@ -165,8 +165,8 @@ export class ProxmoxClient {
   async postWithTicketAuth(path, body = {}) {
     if (!this.password) {
       throw new ProxmoxError(
-        "/execute endpoint requires root@pam identity. API tokens cannot satisfy this. " +
-        "Set PROXMOX_PASSWORD in ~/.config/pi-proxmox/.env so the tool can fall back to password-based ticket auth.",
+        "/execute may reject API token authentication even when normal API calls succeed. " +
+        "Set PROXMOX_USERNAME and PROXMOX_PASSWORD in ~/.config/pi-proxmox/.env so the tool can retry with password-based ticket auth.",
       );
     }
     const savedToken = this.token;

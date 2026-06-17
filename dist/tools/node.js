@@ -1,5 +1,5 @@
-import { Type } from "@sinclair/typebox";
-import { throwIfAborted, emitProgress, safeExecute, execOnNode } from "../tool-runtime.js";
+import { Type } from "typebox";
+import { throwIfAborted, emitProgress, safeExecute, execOnNode, normalizeExecuteCommands } from "../tool-runtime.js";
 
 export function nodeList(client) {
   return {
@@ -114,10 +114,10 @@ export function nodeExecute(client) {
   return {
     name: "proxmox_node_execute",
     label: "Execute API Commands on Node",
-    description: "Executes a batch of Proxmox API calls on a node via the /nodes/{node}/execute endpoint. Paths are resolved relative to the node (e.g., 'status', 'qemu', 'version'). Accepts a JSON array of {method, path, body?} objects. Requires PROXMOX_PASSWORD for ticket auth fallback if API token lacks /execute permission.",
+    description: "Executes a batch of Proxmox API calls on a node via the real /nodes/{node}/execute endpoint. It batches relative node API requests like 'version', 'status', 'qemu', or 'tasks'; it does not run arbitrary shell commands. Accepts a JSON array of {method, path, args?} objects, and also accepts legacy body? as an alias for args. May require PROXMOX_PASSWORD ticket-auth fallback if API-token auth is rejected for /execute.",
     parameters: Type.Object({
       node: Type.String({ description: "Proxmox node name" }),
-      commands: Type.String({ description: "JSON array of API calls, e.g. '[{\"method\":\"GET\",\"path\":\"version\"},{\"method\":\"GET\",\"path\":\"status\"}]'. Paths resolve relative to the node (use 'version', 'status', 'qemu', 'lxc', etc.). Each item has method (GET/POST/PUT/DELETE), path (string), and optional body (object)." }),
+      commands: Type.String({ description: "JSON array of batched node API calls, e.g. '[{\"method\":\"GET\",\"path\":\"version\"},{\"method\":\"GET\",\"path\":\"tasks\",\"args\":{\"limit\":1}}]'. Paths resolve relative to the node (use 'version', 'status', 'qemu', 'lxc', 'tasks', etc.). Each item has method (GET/POST/PUT/DELETE), path (string), and optional args (object). Legacy body is also accepted as an alias for args." }),
     }),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
@@ -126,11 +126,11 @@ export function nodeExecute(client) {
       try {
         commands = JSON.parse(params.commands);
       } catch (err) {
-        throw Object.assign(new Error("commands must be valid JSON array of {method, path, body?} objects"), {
+        throw Object.assign(new Error("commands must be valid JSON array of {method, path, args?} objects"), {
           name: "ProxmoxError",
           status: 400,
           category: "validation",
-          guidance: "The 'commands' parameter must be a valid JSON string. Example: '[{\"method\":\"GET\",\"path\":\"version\"}]'",
+          guidance: "The 'commands' parameter must be a valid JSON string. Example: '[{\"method\":\"GET\",\"path\":\"version\"},{\"method\":\"GET\",\"path\":\"tasks\",\"args\":{\"limit\":1}}]'",
           retryable: false,
         });
       }
@@ -143,29 +143,20 @@ export function nodeExecute(client) {
           retryable: false,
         });
       }
-      // Validate each command object
-      for (let i = 0; i < commands.length; i++) {
-        const cmd = commands[i];
-        if (!cmd || typeof cmd !== "object") {
-          throw Object.assign(new Error(`commands[${i}] must be an object with method and path`), {
-            name: "ProxmoxError",
-            status: 400,
-            category: "validation",
-            guidance: "Each command must be an object with 'method' (GET/POST/PUT/DELETE) and 'path' (string).",
-            retryable: false,
-          });
-        }
+      const normalizedCommands = normalizeExecuteCommands(commands);
+      for (let i = 0; i < normalizedCommands.length; i++) {
+        const cmd = normalizedCommands[i];
         if (!cmd.method || !cmd.path) {
           throw Object.assign(new Error(`commands[${i}] missing required 'method' or 'path'`), {
             name: "ProxmoxError",
             status: 400,
             category: "validation",
-            guidance: "Each command must have 'method' (GET/POST/PUT/DELETE) and 'path' (string, e.g., 'version', 'qemu', 'status').",
+            guidance: "Each command must have 'method' (GET/POST/PUT/DELETE) and 'path' (string, e.g., 'version', 'qemu', 'status', 'tasks'). Optional query/body fields belong under 'args'.",
             retryable: false,
           });
         }
       }
-      return await execOnNode(client, params.node, commands, onUpdate);
+      return await execOnNode(client, params.node, normalizedCommands, onUpdate);
     }),
   };
 }

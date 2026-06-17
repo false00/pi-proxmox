@@ -11,6 +11,7 @@ import { taskList, taskStatus, taskLog } from "./tools/task.js";
 import { userList, userCreate, userDetail, userDelete, groupList, groupCreate, groupDelete, roleList, roleCreate, roleDelete, aclList, aclUpdate, tokenList, tokenCreate, tokenDelete, domainList } from "./tools/access.js";
 import { haStatus, haResourcesList, haResourceCreate, haResourceDelete, haGroupsList, haGroupCreate, haGroupDelete } from "./tools/ha.js";
 import { replicationList, replicationCreate, replicationDelete, replicationRun, replicationLog } from "./tools/replication.js";
+import { apiCall, apiUploadFile } from "./tools/raw.js";
 
 export default async function (pi) {
   const client = new ProxmoxClient();
@@ -179,6 +180,10 @@ export default async function (pi) {
     taskList(client),
     taskStatus(client),
     taskLog(client),
+
+    // Universal API coverage
+    apiCall(client),
+    apiUploadFile(client),
   ];
 
   for (const tool of tools) {

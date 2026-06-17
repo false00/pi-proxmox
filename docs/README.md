@@ -2,6 +2,13 @@
 
 Complete documentation of the Proxmox VE REST API, covering all resource categories, authentication methods, and endpoint details.
 
+## Package-specific operator guides
+- [API Coverage Audit](API_COVERAGE_AUDIT.md) — How this package approaches full official API reach
+- [Compatibility Notes](COMPATIBILITY.md) — Verified Pi and Proxmox versions
+- [Examples](EXAMPLES.md) — Practical usage recipes
+- [Permissions Guide](PERMISSIONS.md) — Token, privilege separation, and `/execute` auth behavior
+- [Troubleshooting](TROUBLESHOOTING.md) — Common failure modes and fixes
+
 ## API Fundamentals
 - [API Overview](API_Overview.md) — Architecture, base URL, JSON Schema, formats, pvesh CLI, client libraries
 - [API Authentication](API_Authentication.md) — Ticket-based auth, API tokens, CSRF protection

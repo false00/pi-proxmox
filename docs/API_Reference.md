@@ -174,7 +174,7 @@ Comprehensive index of all Proxmox VE API resource paths. See the linked documen
 | DELETE | `/nodes/{node}/tasks/{upid}` | Stop task |
 | GET | `/nodes/{node}/rrddata` | RRD data |
 | GET | `/nodes/{node}/subscription` | Subscription status |
-| POST | `/nodes/{node}/execute` | Execute command |
+| POST | `/nodes/{node}/execute` | Execute batched node API requests |
 | POST | `/nodes/{node}/stop` | Stop node |
 | POST | `/nodes/{node}/reboot` | Reboot node |
 | GET | `/nodes/{node}/netstat` | Network stats |

@@ -1,4 +1,4 @@
-import { Type } from "@sinclair/typebox";
+import { Type } from "typebox";
 import { throwIfAborted, emitProgress, safeExecute } from "../tool-runtime.js";
 
 export function clusterStatus(client) {

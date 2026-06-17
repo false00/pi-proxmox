@@ -211,7 +211,7 @@ Refresh APT package index.
 ```
 POST /nodes/{node}/execute
 ```
-Execute arbitrary commands on the node (requires root privileges).
+Execute multiple node-relative Proxmox API requests in order (requires root privileges). This is a batched API endpoint, not arbitrary shell execution.
 
 **Security note:** This endpoint requires high privileges and should be used with caution.
 

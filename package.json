@@ -7,9 +7,16 @@
   "files": [
     "dist",
     "AGENTS.md",
+    "CHANGELOG.md",
     "CONTRIBUTING.md",
     "README.md",
     "SECURITY.md",
+    "docs/API_COVERAGE_AUDIT.md",
+    "docs/COMPATIBILITY.md",
+    "docs/EXAMPLES.md",
+    "docs/PERMISSIONS.md",
+    "docs/TROUBLESHOOTING.md",
+    "scripts/audit-official-api.mjs",
     "LICENSE"
   ],
   "exports": {
@@ -59,6 +66,7 @@
   },
   "scripts": {
     "test": "node tests/run.mjs",
+    "test:smoke": "node tests/smoke.test.mjs",
     "test:auth": "node tests/auth.test.mjs",
     "test:pagination": "node tests/pagination.test.mjs",
     "test:vm-agent": "node tests/vm-agent.test.mjs",
@@ -67,14 +75,20 @@
     "test:vm": "node tests/vm.test.mjs",
     "test:upload": "node tests/upload.test.mjs",
     "test:runtime": "node tests/runtime.test.mjs",
+    "test:raw-api": "node tests/raw-api.test.mjs",
     "test:package": "node tests/package.test.mjs",
+    "test:ci": "npm run test:smoke && npm run test:package && npm run audit:official-api",
+    "audit:official-api": "node scripts/audit-official-api.mjs",
     "lint": "echo 'no linter configured'"
   },
   "dependencies": {
-    "@sinclair/typebox": "^0.34.48",
     "undici": "^8.4.1"
   },
+  "devDependencies": {
+    "typebox": "^1.2.8"
+  },
   "peerDependencies": {
-    "@earendil-works/pi-coding-agent": "*"
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
   }
 }

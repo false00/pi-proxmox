@@ -1,15 +1,24 @@
 # @false00/pi-proxmox
 
+[![npm version](https://img.shields.io/npm/v/@false00/pi-proxmox.svg)](https://www.npmjs.com/package/@false00/pi-proxmox)
+[![license](https://img.shields.io/npm/l/@false00/pi-proxmox.svg)](LICENSE)
+[![CI](https://github.com/false00/pi-proxmox/actions/workflows/ci.yml/badge.svg)](https://github.com/false00/pi-proxmox/actions/workflows/ci.yml)
+
 Production-focused Proxmox VE automation for the Pi coding agent.
 
-`@false00/pi-proxmox` exposes **140 Pi tools** for managing Proxmox clusters: VMs, LXC containers, storage, cluster state, firewall rules, backups, HA, replication, access control, and task tracking through the Proxmox REST API.
+`@false00/pi-proxmox` exposes **142 Pi tools** for managing Proxmox clusters: VMs, LXC containers, storage, cluster state, firewall rules, backups, HA, replication, access control, task tracking, and universal raw API access through the Proxmox REST API.
 
 | Resource | Link |
 |---|---|
 | npm | [`@false00/pi-proxmox`](https://www.npmjs.com/package/@false00/pi-proxmox) |
 | GitHub | [github.com/false00/pi-proxmox](https://github.com/false00/pi-proxmox) |
 | License | [MIT](LICENSE) |
+| Changelog | [CHANGELOG.md](CHANGELOG.md) |
 | Security policy | [SECURITY.md](SECURITY.md) |
+| Compatibility notes | [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) |
+| Examples | [docs/EXAMPLES.md](docs/EXAMPLES.md) |
+| Permissions guide | [docs/PERMISSIONS.md](docs/PERMISSIONS.md) |
+| Troubleshooting | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) |
 | Contributing guide | [CONTRIBUTING.md](CONTRIBUTING.md) |
 
 ## Why this package
@@ -18,10 +27,11 @@ This package is designed for people who want Pi to operate real Proxmox infrastr
 
 What makes it useful:
 
-- **Broad coverage** — 140 tools spanning VM, LXC, storage, cluster, firewall, backup, HA, replication, and task workflows
+- **Broad coverage** — 142 tools spanning VM, LXC, storage, cluster, firewall, backup, HA, replication, task workflows, and universal raw API access
+- **Consistent wrapper strategy** — dedicated tools for common workflows, universal raw tools for edge cases, with parameters that intentionally stay close to the Proxmox API where practical
 - **Agent-friendly responses** — structured JSON output for read/list/status tools, plus progress streaming for long-running operations
 - **Operational safety** — destructive actions are explicit, task-based operations return UPIDs, and tool failures surface as real Pi tool errors
-- **Live-tested behavior** — the repo includes integration tests against a real Proxmox host, including VM/LXC lifecycle tests and runtime-behavior tests
+- **Live-tested behavior** — the repo includes integration tests against a real Proxmox host, including VM/LXC lifecycle tests, package checks, raw API coverage tests, and runtime-behavior tests
 - **Pi-native packaging** — installable as a Pi package through npm and loadable directly via `pi install` or `pi -e`
 
 ## What you get
@@ -42,7 +52,45 @@ Tool coverage by area:
 | High availability | 7 |
 | Replication | 5 |
 | Tasks | 3 |
-| **Total** | **140** |
+| Universal raw API coverage | 2 |
+| **Total** | **142** |
+
+### Official API coverage audit
+
+Against the official Proxmox VE API viewer at `https://pve.proxmox.com/pve-docs/api-viewer/`, the API surface audited on **2026-06-17** exposed:
+
+- **444 routes**
+- **675 route/method combinations**
+- top-level namespaces: `access`, `cluster`, `nodes`, `pools`, `storage`, and `version`
+- standard REST methods: `GET`, `POST`, `PUT`, and `DELETE`
+
+This package covers the common day-to-day workflows with dedicated `proxmox_*` tools and covers the rest of the official API surface with two universal escape hatches:
+
+- `proxmox_api_call` — generic GET/POST/PUT/DELETE access to any Proxmox API path under `/api2/json`
+- `proxmox_api_upload_file` — generic multipart upload access for upload-style endpoints
+
+## Design philosophy
+
+This package is intentionally a **thin-but-usable Proxmox wrapper** for Pi.
+
+That means:
+
+- dedicated tools are added for common operational workflows
+- raw universal tools exist so official API reach does not depend on hundreds of niche one-off wrappers
+- parameter names and many flag conventions stay close to upstream Proxmox behavior when practical
+- the package prefers predictable behavior and maintainability over hiding every Proxmox detail behind a custom abstraction layer
+
+## Stability guarantees
+
+This repository aims to provide a stable automation surface for Pi users.
+
+Current guarantees:
+
+- published tool names are treated as stable once released
+- destructive operations are explicit in tool naming and documentation
+- dedicated tools stay close to upstream Proxmox semantics where practical
+- universal raw tools are the compatibility layer for long-tail official endpoints
+- `proxmox_node_execute` prefers official `args` command objects and still accepts legacy `body` as a compatibility alias
 
 ## Install
 
@@ -78,6 +126,41 @@ Check recent tasks on pve1
 
 Pi will call tools like `proxmox_vm_list`, `proxmox_lxc_create`, `proxmox_cluster_status`, and `proxmox_task_list` behind the scenes.
 
+## Top tasks and example prompts
+
+Common things users ask Pi to do with this package:
+
+```text
+List all VMs on pve1
+Show running containers on pve1
+Create a Debian LXC with 2 GB RAM on pve1
+Clone VM 900 to a new VM 101 named web-01
+Take a snapshot of VM 101 named pre-update
+Roll back VM 101 to snapshot pre-update
+Upload an ISO to local storage on pve1
+Show failed tasks on pve1
+Check cluster quorum and node health
+Run hostname inside VM 118 through the guest agent
+```
+
+## Choosing dedicated tools vs raw tools
+
+Use the package in this order:
+
+1. **Dedicated `proxmox_*` tools first** for common workflows like VM lifecycle, LXC lifecycle, storage, firewall, HA, replication, and backups
+2. Use **`proxmox_api_call`** when the official API supports something that does not yet have a dedicated tool
+3. Use **`proxmox_api_upload_file`** for multipart upload endpoints such as storage uploads
+
+This keeps everyday usage ergonomic while still preserving full official API reach.
+
+## Operational docs
+
+For day-to-day use and troubleshooting, see:
+
+- [docs/EXAMPLES.md](docs/EXAMPLES.md)
+- [docs/PERMISSIONS.md](docs/PERMISSIONS.md)
+- [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
+
 ## Trust, safety, and operating model
 
 This is a **full-access infrastructure package**. Like any Pi extension, it can perform real changes in your environment if Pi is allowed to call its tools.
@@ -89,11 +172,15 @@ Important expectations:
 - Destructive operations such as delete, stop, reboot, rollback, firewall changes, and ACL updates are exposed as explicit tools
 - Long-running operations return Proxmox task identifiers or agent PIDs so Pi can continue tracking them
 - Runtime failures are thrown back to Pi as **proper tool errors**, not fake success payloads
+- In the verified test environment, `/nodes/{node}/execute` required password/ticket fallback even though normal token-based API calls succeeded
+- `/nodes/{node}/execute` is a real Proxmox endpoint for batching node-relative API requests; it does **not** provide arbitrary shell execution on the host
 
 If you are evaluating the package for production use, review:
 
 - [SECURITY.md](SECURITY.md)
 - [AGENTS.md](AGENTS.md)
+- [CHANGELOG.md](CHANGELOG.md)
+- [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)
 - [tests/](tests/) for behavioral coverage
 - [docs/](docs/) for the bundled Proxmox API reference material used by the project
 
@@ -119,7 +206,7 @@ PROXMOX_VERIFY_SSL=false
 PROXMOX_TOKEN_ID=root@pam!automation
 PROXMOX_TOKEN_SECRET=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 
-# --- Password fallback (used by /execute endpoint when API tokens lack permission) ---
+# --- Password fallback (optional; mainly used when /execute rejects API-token auth) ---
 PROXMOX_USERNAME=root@pam
 PROXMOX_PASSWORD=yourpassword
 
@@ -172,7 +259,7 @@ chmod 600 ~/.config/pi-proxmox/.env
 | `PROXMOX_TOKEN_ID` | Token ID such as `root@pam!automation` |
 | `PROXMOX_TOKEN_SECRET` | Token secret UUID |
 | `PROXMOX_USERNAME` | Username for password-based auth fallback |
-| `PROXMOX_PASSWORD` | Password for password-based auth fallback |
+| `PROXMOX_PASSWORD` | Password for password-based auth fallback, mainly for `/nodes/{node}/execute` |
 | `PROXMOX_VERIFY_SSL` | Verify TLS certificates, `true` or `false` |
 | `PROXMOX_TIMEOUT_MS` | Per-request API timeout in milliseconds |
 | `PROXMOX_TOOL_TIMEOUT_MS` | Total Pi tool execution timeout in milliseconds |
@@ -310,7 +397,7 @@ Errors in `timeout`, `network`, and `server_error` categories are marked retryab
 | `proxmox_node_time` | Get system time and timezone |
 | `proxmox_node_hardware` | List hardware devices |
 | `proxmox_node_network_list` | List network interfaces |
-| `proxmox_node_execute` | Execute batch API calls via `/execute` |
+| `proxmox_node_execute` | Batch relative node API calls via `/execute` |
 | `proxmox_node_reboot` | Reboot the node |
 | `proxmox_node_stop` | Power off the node |
 | `proxmox_node_apt_update` | Refresh the APT package index |
@@ -421,6 +508,13 @@ Errors in `timeout`, `network`, and `server_error` categories are marked retryab
 | `proxmox_task_status` | Get task status by UPID |
 | `proxmox_task_log` | Get task log output |
 
+### Universal API coverage
+
+| Tool | Description |
+|---|---|
+| `proxmox_api_call` | Call any official GET/POST/PUT/DELETE endpoint under `/api2/json` |
+| `proxmox_api_upload_file` | Upload a local file to any multipart Proxmox upload endpoint |
+
 ## Pagination notes
 
 Several tools accept optional `start` and `limit` parameters. These map directly to Proxmox pagination or time-window query parameters.
@@ -442,15 +536,32 @@ dist/                     Runtime extension code committed directly to the repo
   tool-runtime.js         Shared tool execution helpers
   tools/                  Domain tool definitions
 
-docs/                     Bundled Proxmox API reference material
+docs/                     Bundled Proxmox API reference material and operator docs
 
-tests/                    Live integration and runtime-behavior tests
+tests/                    Live integration, smoke, and runtime-behavior tests
+
+scripts/                  Audit and maintenance helpers
+.github/                  CI workflow, issue templates, and repo automation
 
 README.md                 User-facing package documentation
 AGENTS.md                 Agent/maintainer guidance
 CONTRIBUTING.md           Contributor workflow
 SECURITY.md               Security and disclosure policy
+CHANGELOG.md              Release history
 ```
+
+## Compatibility
+
+Verified directly from this repository:
+
+| Component | Verified value |
+|---|---|
+| Pi runtime | `0.79.6` |
+| Proxmox VE release | `9.2` |
+| Proxmox VE version | `9.2.3` |
+| Node.js | `>=20` |
+
+See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) for the maintained compatibility notes.
 
 ## Development
 
@@ -465,7 +576,10 @@ npm run test:lxc
 npm run test:vm
 npm run test:upload
 npm run test:runtime
+npm run test:raw-api
 npm run test:package
+npm run test:ci
+npm run audit:official-api
 ```
 
 ### Test philosophy
@@ -475,7 +589,9 @@ This project prefers **real integration coverage** over mock-heavy tests.
 - API/auth behavior is tested against a real Proxmox host
 - VM and LXC lifecycle tests create resources and clean them up
 - Runtime tests verify Pi-specific behavior such as progress streaming, thrown tool errors, and tool timeout handling
+- Raw API tests verify the universal coverage tools against official GET/POST/PUT/DELETE and upload-style endpoints
 - Package tests verify repository metadata and published-package structure
+- The official API audit script fetches the Proxmox API viewer and reports the current upstream route and method counts
 
 ## Publishing
 
@@ -486,11 +602,27 @@ npm publish --ignore-scripts
 
 Publishing guidance, versioning rules, and release discipline live in [AGENTS.md](AGENTS.md).
 
+## Support and feedback
+
+The repository includes issue templates for:
+
+- bug reports
+- feature requests
+- compatibility reports
+
+When reporting problems, include the package version, Pi version, Proxmox version, tool name, and auth mode if possible.
+
 ## See also
 
 - [AGENTS.md](AGENTS.md) — maintainer and agent instructions
+- [CHANGELOG.md](CHANGELOG.md) — release history
 - [CONTRIBUTING.md](CONTRIBUTING.md) — contributor workflow
 - [SECURITY.md](SECURITY.md) — security policy and disclosure instructions
+- [docs/API_COVERAGE_AUDIT.md](docs/API_COVERAGE_AUDIT.md) — official API audit and coverage approach
+- [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) — verified environment notes
+- [docs/EXAMPLES.md](docs/EXAMPLES.md) — copyable usage examples
+- [docs/PERMISSIONS.md](docs/PERMISSIONS.md) — auth and token guidance
+- [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) — common failure modes and fixes
 - [docs/](docs/) — bundled Proxmox reference material
 
 ## License

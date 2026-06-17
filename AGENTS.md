@@ -17,6 +17,7 @@ The package exists to give the Pi coding agent high-coverage Proxmox VE tooling 
 - `dist/tool-runtime.js` — shared execution helpers such as `safeExecute`, `emitProgress`, and `execOnNode`
 - `tests/` — live integration tests plus Pi-runtime behavior tests
 - `docs/` — bundled Proxmox documentation and API reference material
+- `.github/` — CI workflow, issue templates, PR template, dependency automation, and code ownership hints
 - `README.md` — user-facing package documentation
 - `CONTRIBUTING.md` — contributor workflow
 - `SECURITY.md` — security and disclosure policy
@@ -28,6 +29,7 @@ The package exists to give the Pi coding agent high-coverage Proxmox VE tooling 
 - There is **no build step** and no `tsconfig.json`.
 - The package is intended for **Pi package installation via npm**.
 - The entrypoint must remain registered in `package.json` under `pi.extensions`.
+- Full official API reach is provided by a combination of dedicated tools plus the universal `proxmox_api_call` and `proxmox_api_upload_file` tools.
 
 ## Pi package conventions
 
@@ -35,6 +37,7 @@ Follow current Pi package guidance:
 
 - Keep the `pi-package` keyword in `package.json`.
 - Preserve `pi.extensions` so Pi can load the package root directly.
+- Use the Pi-preferred `typebox` package name consistently in runtime imports.
 - If package metadata changes, make sure `npm pack --dry-run` still includes the expected runtime files and top-level docs.
 - Tool failures must be **thrown** from `execute()` so Pi marks them as `isError: true`.
 - Partial updates must use the standard Pi `onUpdate({ content: [...] })` shape.
@@ -63,6 +66,8 @@ Maintain these behavioral guarantees:
   - `server_error`
   - `unknown`
 - `proxmox_node_execute` must continue to use `execOnNode(...)` and preserve API-token → ticket-auth fallback behavior.
+- `/nodes/{node}/execute` is for batching node-relative Proxmox API requests; do not describe it as arbitrary shell execution.
+- Do not remove the `/execute` fallback path unless it has been re-verified against a live Proxmox environment; in the currently verified environment, the fallback path is still needed.
 
 ## Known Proxmox-specific constraints
 
@@ -96,6 +101,7 @@ Every code change should be backed by tests appropriate to the behavior being to
 
 Current suites:
 
+- `tests/smoke.test.mjs` — extension import and tool-surface smoke checks without live Proxmox access
 - `tests/auth.test.mjs` — auth and basic connectivity
 - `tests/pagination.test.mjs` — pagination behavior
 - `tests/vm-agent.test.mjs` — VM guest-agent behavior
@@ -104,7 +110,9 @@ Current suites:
 - `tests/vm.test.mjs` — VM lifecycle
 - `tests/upload.test.mjs` — storage upload and cleanup
 - `tests/runtime.test.mjs` — Pi runtime behavior, progress, thrown errors, tool timeout
+- `tests/raw-api.test.mjs` — universal raw API coverage against official GET/POST/PUT/DELETE and upload-style endpoints
 - `tests/package.test.mjs` — package metadata and trust-signal structure
+- `scripts/audit-official-api.mjs` — live audit against the official Proxmox API viewer schema
 
 Expectations:
 
@@ -112,6 +120,8 @@ Expectations:
 - New features should include both success-path and failure-path coverage.
 - User-facing packaging or documentation changes should have at least one structural or metadata check when feasible.
 - Run `npm test` before considering work complete.
+- Run `npm run test:smoke` for a fast non-live sanity check.
+- Run `npm run audit:official-api` when changing official-coverage claims or raw API coverage behavior.
 
 ## Security and trust posture
 
@@ -137,12 +147,15 @@ Treat this package as infrastructure automation software, not a toy integration.
 When asked to prepare a release:
 
 1. Run `npm test`
-2. Run `npm run test:package`
-3. Run `npm pack --dry-run`
-4. Verify `package.json` metadata is current
-5. Verify README and AGENTS reflect the shipped behavior
-6. Check whether the current version is already published before bumping
-7. Only commit, tag, push, or publish with explicit user approval
+2. Run `npm run test:smoke`
+3. Run `npm run test:raw-api`
+4. Run `npm run test:package`
+5. Run `npm run audit:official-api`
+6. Run `npm pack --dry-run`
+7. Verify `package.json` metadata is current
+8. Verify README and AGENTS reflect the shipped behavior
+9. Check whether the current version is already published before bumping
+10. Only commit, tag, push, or publish with explicit user approval
 
 ## Proxmox provisioning guideline
 

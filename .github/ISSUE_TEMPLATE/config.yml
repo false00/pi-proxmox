@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security issue
+    url: https://github.com/false00/pi-proxmox/security/policy
+    about: Please follow the SECURITY.md guidance for sensitive vulnerabilities.
