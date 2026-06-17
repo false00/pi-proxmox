@@ -141,6 +141,7 @@ Treat this package as infrastructure automation software, not a toy integration.
 - Dry-run with `npm pack --dry-run` before publish.
 - Publish with `npm publish --ignore-scripts`.
 - Push tags only after a successful publish when the user has asked for release work.
+- If npm browser auth / 2FA blocks automation and the user wants to complete the release manually, suggest the one-liner `npm publish --ignore-scripts && git push origin master --tags`. If the first publish attempt stops to show a browser-auth URL, tell the user to complete that auth flow and then rerun the same one-liner.
 
 ## Release checklist
 
@@ -156,6 +157,7 @@ When asked to prepare a release:
 8. Verify README and AGENTS reflect the shipped behavior
 9. Check whether the current version is already published before bumping
 10. Only commit, tag, push, or publish with explicit user approval
+11. If the user prefers to finish the release manually, provide the publish/push one-liner instead of trying to keep retrying around browser-auth prompts
 
 ## Proxmox provisioning guideline
 
