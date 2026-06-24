@@ -1,6 +1,6 @@
 {
   "name": "@false00/pi-proxmox",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Production-focused Proxmox VE automation tools for the Pi coding agent — VMs, LXC, storage, cluster, firewall, backup, HA, replication, and access control via the REST API",
   "type": "module",
   "main": "dist/index.js",
@@ -82,7 +82,7 @@
     "lint": "echo 'no linter configured'"
   },
   "dependencies": {
-    "undici": "^8.4.1"
+    "undici": "^8.5.0"
   },
   "devDependencies": {
     "typebox": "^1.2.8"

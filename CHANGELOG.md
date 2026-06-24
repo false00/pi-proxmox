@@ -6,6 +6,11 @@ The format is intentionally simple and human-readable.
 
 ## Unreleased
 
+## 1.0.1 - 2026-06-23
+
+### Changed
+- Updated `undici` from `^8.4.1` to `^8.5.0` to resolve npm audit advisories affecting the package dependency.
+
 ## 1.0.0 - 2026-06-17
 
 ### Added
