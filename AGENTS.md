@@ -122,6 +122,7 @@ Expectations:
 - User-facing packaging or documentation changes should have at least one structural or metadata check when feasible.
 - Run `npm test` before considering work complete.
 - Run `npm run test:smoke` for a fast non-live sanity check.
+- Run `npm run test:security` when dependency or workflow changes affect the shipped security posture.
 - Run `npm run audit:official-api` when changing official-coverage claims or raw API coverage behavior.
 
 ## Security and trust posture
@@ -152,13 +153,14 @@ When asked to prepare a release:
 2. Run `npm run test:smoke`
 3. Run `npm run test:raw-api`
 4. Run `npm run test:package`
-5. Run `npm run audit:official-api`
-6. Run `npm pack --dry-run`
-7. Verify `package.json` metadata is current
-8. Verify README and AGENTS reflect the shipped behavior
-9. Check whether the current version is already published before bumping
-10. Only commit, tag, push, or publish with explicit user approval
-11. If the user prefers to finish the release manually, provide the publish/push one-liner instead of trying to keep retrying around browser-auth prompts
+5. Run `npm run test:security`
+6. Run `npm run audit:official-api`
+7. Run `npm pack --dry-run`
+8. Verify `package.json` metadata is current
+9. Verify README and AGENTS reflect the shipped behavior
+10. Check whether the current version is already published before bumping
+11. Only commit, tag, push, or publish with explicit user approval
+12. If the user prefers to finish the release manually, provide the publish/push one-liner instead of trying to keep retrying around browser-auth prompts
 
 ## Proxmox provisioning guideline
 

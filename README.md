@@ -566,7 +566,7 @@ See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) for the maintained compatibil
 ## Development
 
 ```bash
-npm install
+npm ci
 npm test
 npm run test:auth
 npm run test:pagination
@@ -578,6 +578,7 @@ npm run test:upload
 npm run test:runtime
 npm run test:raw-api
 npm run test:package
+npm run test:security
 npm run test:ci
 npm run audit:official-api
 ```
@@ -592,6 +593,10 @@ This project prefers **real integration coverage** over mock-heavy tests.
 - Raw API tests verify the universal coverage tools against official GET/POST/PUT/DELETE and upload-style endpoints
 - Package tests verify repository metadata and published-package structure
 - The official API audit script fetches the Proxmox API viewer and reports the current upstream route and method counts
+
+### CI security gates
+
+GitHub Actions uses `npm ci` for reproducible installs, runs `npm audit --audit-level=high` as part of `npm run test:ci`, and performs GitHub dependency review on pull requests so vulnerable dependency additions fail before merge.
 
 ## Publishing
 

@@ -77,15 +77,16 @@
     "test:runtime": "node tests/runtime.test.mjs",
     "test:raw-api": "node tests/raw-api.test.mjs",
     "test:package": "node tests/package.test.mjs",
-    "test:ci": "npm run test:smoke && npm run test:package && npm run audit:official-api",
+    "test:security": "npm audit --audit-level=high",
+    "test:ci": "npm run test:smoke && npm run test:package && npm run test:security && npm run audit:official-api",
     "audit:official-api": "node scripts/audit-official-api.mjs",
     "lint": "echo 'no linter configured'"
   },
   "dependencies": {
-    "undici": "^8.5.0"
+    "undici": "^8.7.0"
   },
   "devDependencies": {
-    "typebox": "^1.2.8"
+    "typebox": "^1.3.6"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",

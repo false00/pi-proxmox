@@ -4,7 +4,12 @@ on:
   push:
     branches: [master]
   pull_request:
+  schedule:
+    - cron: '17 4 * * 1'
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   package-and-smoke:
@@ -15,25 +20,31 @@ jobs:
         node: [22]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
           cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      - name: Smoke test
-        run: npm run test:smoke
-
-      - name: Package structure test
-        run: npm run test:package
-
-      - name: Official API audit
-        run: npm run audit:official-api
+      - name: CI validation
+        run: npm run test:ci
 
       - name: Package dry run
         run: npm pack --dry-run
+
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Dependency review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
