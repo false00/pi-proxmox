@@ -6,6 +6,15 @@ The format is intentionally simple and human-readable.
 
 ## Unreleased
 
+## 1.0.2 - 2026-07-16
+
+### Added
+- Scheduled CodeQL scanning for the JavaScript codebase.
+
+### Changed
+- Updated `undici` to `^8.7.0` and `typebox` to `^1.3.6`.
+- Hardened GitHub Actions with immutable action SHAs, `npm ci`, dependency review, and stricter repository security settings.
+
 ## 1.0.1 - 2026-06-23
 
 ### Changed
