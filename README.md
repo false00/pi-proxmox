@@ -596,7 +596,7 @@ This project prefers **real integration coverage** over mock-heavy tests.
 
 ### CI security gates
 
-GitHub Actions uses `npm ci` for reproducible installs, runs `npm audit --audit-level=high` as part of `npm run test:ci`, and performs GitHub dependency review on pull requests so vulnerable dependency additions fail before merge.
+GitHub Actions uses immutable action SHAs, `npm ci` for reproducible installs, runs `npm audit --audit-level=high` as part of `npm run test:ci`, performs GitHub dependency review on pull requests, and runs scheduled CodeQL analysis for the JavaScript codebase.
 
 ## Publishing
 

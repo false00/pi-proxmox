@@ -49,6 +49,7 @@ export async function run() {
   await s.test("repository automation and issue templates exist", async () => {
     for (const path of [
       ".github/workflows/ci.yml",
+      ".github/workflows/codeql.yml",
       ".github/CODEOWNERS",
       ".github/dependabot.yml",
       ".github/pull_request_template.md",
@@ -76,6 +77,7 @@ export async function run() {
       "## Configuration",
       "## Repository layout",
       "## Development",
+      "### CI security gates",
     ]) {
       if (!readme.includes(section)) throw new Error(`Missing README section: ${section}`);
     }

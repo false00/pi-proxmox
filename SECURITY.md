@@ -11,6 +11,16 @@ We aim to keep the package:
 - transparent about limitations
 - free of hard-coded secrets
 
+## Repository security automation
+
+This repository keeps security automation close to the shipped package:
+
+- GitHub Actions uses immutable action SHAs for third-party workflow steps
+- CI uses `npm ci` and runs `npm audit --audit-level=high`
+- pull requests run GitHub dependency review to block high-severity vulnerable additions
+- CodeQL scans the JavaScript codebase on pushes, pull requests, and a weekly schedule
+- GitHub repository settings should keep vulnerability alerts, automated security fixes, private vulnerability reporting, and branch protection enabled
+
 ## Reporting a vulnerability
 
 If you discover a security issue, please report it privately to the maintainer before opening a public issue.

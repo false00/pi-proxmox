@@ -133,6 +133,8 @@ Treat this package as infrastructure automation software, not a toy integration.
 - Do not log secrets in code, tests, or documentation.
 - Prefer explicit errors over silent fallback unless a documented fallback already exists.
 - Keep destructive operations obvious in tool naming and docs.
+- Keep GitHub-side protections enabled: vulnerability alerts, automated security fixes, private vulnerability reporting, branch protection, and code scanning.
+- Pin third-party GitHub Actions to immutable SHAs when updating workflow files.
 - If a behavior is uncertain, say so and inspect the code or docs instead of guessing.
 
 ## Release discipline
