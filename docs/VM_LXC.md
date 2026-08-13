@@ -129,11 +129,11 @@ DELETE /nodes/{node}/lxc/{vmid}/snapshot/{snapname}
 
 ### List Available Templates
 ```
-GET /nodes/{node}/lxc/templates
+GET /nodes/{node}/storage/{storage}/content?content=vztmpl
 ```
-List all cached LXC templates on the node.
+List cached LXC templates from a node storage backend.
 
-**Returns:** Array with `template` (path), `size`, `digest`, `download_url`.
+**Returns:** Storage content records for volumes of type `vztmpl`.
 
 See [ISO_Template_Management](ISO_Template_Management.md) for detailed template management and download instructions.
 

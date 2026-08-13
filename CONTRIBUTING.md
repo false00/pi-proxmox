@@ -56,6 +56,7 @@ npm run test:lxc
 npm run test:vm
 npm run test:upload
 npm run test:runtime
+npm run test:mcp
 npm run test:raw-api
 npm run test:package
 npm run audit:official-api

@@ -75,18 +75,22 @@
     "test:vm": "node tests/vm.test.mjs",
     "test:upload": "node tests/upload.test.mjs",
     "test:runtime": "node tests/runtime.test.mjs",
+    "test:mcp": "node tests/mcp.test.mjs",
     "test:raw-api": "node tests/raw-api.test.mjs",
     "test:package": "node tests/package.test.mjs",
     "test:security": "npm audit --audit-level=high",
-    "test:ci": "npm run test:smoke && npm run test:package && npm run test:security && npm run audit:official-api",
+    "test:ci": "npm run test:smoke && npm run test:mcp && npm run test:package && npm run test:security && npm run audit:official-api",
     "audit:official-api": "node scripts/audit-official-api.mjs",
-    "lint": "echo 'no linter configured'"
+    "lint": "echo 'no linter configured'",
+    "mcp": "node dist/mcp-server.js"
   },
   "dependencies": {
-    "undici": "^8.7.0"
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "undici": "^8.10.0"
   },
   "devDependencies": {
-    "typebox": "^1.3.6"
+    "@earendil-works/pi-coding-agent": "^0.84.1",
+    "typebox": "^1.3.11"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",

@@ -51,7 +51,7 @@ POST /nodes/{node}/lxc/{vmid}/status/stop
 DELETE /nodes/{node}/lxc/{vmid}
 POST /nodes/{node}/lxc/{vmid}/migrate
 POST /nodes/{node}/lxc/{vmid}/snapshot
-GET /nodes/{node}/lxc/templates
+GET /nodes/{node}/storage/{storage}/content?content=vztmpl
 ```
 See [VM_LXC](VM_LXC.md) for complete container management reference.
 

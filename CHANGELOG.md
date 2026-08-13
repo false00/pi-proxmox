@@ -6,6 +6,17 @@ The format is intentionally simple and human-readable.
 
 ## Unreleased
 
+### Added
+- Added a stdio MCP bridge that exposes the existing `proxmox_*` tool surface to VS Code and other MCP clients, with non-live protocol and schema coverage.
+
+### Changed
+- LXC template listing now reads `vztmpl` content from a selectable storage backend instead of using the obsolete node template endpoint.
+- Updated pinned GitHub Actions and grouped CodeQL updates so its initialization and analysis steps stay on the same version.
+- Stabilized the protected package CI check name and expanded CI to cover the MCP bridge.
+
+### Security
+- Updated `@earendil-works/pi-coding-agent`, `undici`, `typebox`, `brace-expansion`, and `protobufjs` to patched versions that pass the repository audit gate.
+
 ## 1.0.2 - 2026-07-16
 
 ### Added

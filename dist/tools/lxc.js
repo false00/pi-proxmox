@@ -254,11 +254,14 @@ export function lxcResize(client) {
 export function lxcTemplateList(client) {
   return {
     name: "proxmox_lxc_template_list", label: "List LXC Templates",
-    description: "Lists all cached LXC templates available on a node.",
-    parameters: Type.Object({ node: Type.String({ description: "Proxmox node name" }) }),
+    description: "Lists cached LXC templates from a node storage backend.",
+    parameters: Type.Object({
+      node: Type.String({ description: "Proxmox node name" }),
+      storage: Type.Optional(Type.String({ description: "Storage identifier containing templates (default: local)" })),
+    }),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
-      return await client.get(`/nodes/${params.node}/lxc/templates`);
+      return await client.get(`/nodes/${params.node}/storage/${params.storage || "local"}/content`, { content: "vztmpl" });
     }),
   };
 }

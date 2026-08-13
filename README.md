@@ -112,6 +112,26 @@ For local development from this repository:
 pi -e .
 ```
 
+### VS Code Copilot through MCP
+
+This repository also includes a stdio MCP bridge that exposes the same 142 `proxmox_*` tools to VS Code Copilot and other MCP clients. It reuses the existing Pi extension entrypoint and the same local configuration at `~/.config/pi-proxmox/.env`; do not put tokens or passwords in `mcp.json`.
+
+For a local checkout, configure the MCP client with an absolute path to the bridge:
+
+```json
+{
+  "servers": {
+    "pi-proxmox": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["/absolute/path/to/pi-proxmox/dist/mcp-server.js"]
+    }
+  }
+}
+```
+
+Then start or trust the MCP server in the client. The bridge preserves the existing tool names, TypeBox-derived JSON schemas, Proxmox REST client, ticket-auth fallback for `proxmox_node_execute`, and structured error behavior.
+
 ## Quick start
 
 After installing, ask Pi to operate your Proxmox cluster in plain English:

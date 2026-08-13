@@ -20,7 +20,7 @@ export function clusterResources(client) {
     name: "proxmox_cluster_resources",
     label: "List Cluster Resources",
     description: "Gets an aggregated view of all cluster resources: VMs, containers, nodes, and storage.",
-    parameters: Type.Object({ type: Type.Optional(Type.String({ description: "Filter by type: vm, container, node, storage, pool" })) }),
+    parameters: Type.Object({ type: Type.Optional(Type.String({ description: "Filter by official Proxmox type: vm, storage, node, or sdn" })) }),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
       emitProgress(onUpdate, "Fetching cluster resources...");

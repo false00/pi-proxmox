@@ -12,6 +12,7 @@ The package exists to give the Pi coding agent high-coverage Proxmox VE tooling 
 
 - `dist/` — source of truth for runtime code; there is no separate `src/` tree
 - `dist/index.js` — default-exported Pi extension entrypoint
+- `dist/mcp-server.js` — stdio MCP bridge that exposes the same Pi tools to VS Code Copilot and other MCP clients
 - `dist/tools/` — domain-specific tool definitions
 - `dist/proxmox-client.js` — REST client, auth, request plumbing, upload support
 - `dist/tool-runtime.js` — shared execution helpers such as `safeExecute`, `emitProgress`, and `execOnNode`
@@ -29,6 +30,7 @@ The package exists to give the Pi coding agent high-coverage Proxmox VE tooling 
 - There is **no build step** and no `tsconfig.json`.
 - The package is intended for **Pi package installation via npm**.
 - The entrypoint must remain registered in `package.json` under `pi.extensions`.
+- The MCP bridge must continue to collect tool definitions through `dist/index.js`; do not fork or rename the `proxmox_*` tool surface for MCP.
 - Full official API reach is provided by a combination of dedicated tools plus the universal `proxmox_api_call` and `proxmox_api_upload_file` tools.
 - The currently supported Node.js floor is **22+**.
 
@@ -111,6 +113,7 @@ Current suites:
 - `tests/vm.test.mjs` — VM lifecycle
 - `tests/upload.test.mjs` — storage upload and cleanup
 - `tests/runtime.test.mjs` — Pi runtime behavior, progress, thrown errors, tool timeout
+- `tests/mcp.test.mjs` — non-live stdio MCP handshake, tool discovery, and schema-preservation coverage
 - `tests/raw-api.test.mjs` — universal raw API coverage against official GET/POST/PUT/DELETE and upload-style endpoints
 - `tests/package.test.mjs` — package metadata and trust-signal structure
 - `scripts/audit-official-api.mjs` — live audit against the official Proxmox API viewer schema
@@ -122,6 +125,7 @@ Expectations:
 - User-facing packaging or documentation changes should have at least one structural or metadata check when feasible.
 - Run `npm test` before considering work complete.
 - Run `npm run test:smoke` for a fast non-live sanity check.
+- Run `npm run test:mcp` after changing the MCP bridge or the shared tool registration surface.
 - Run `npm run test:security` when dependency or workflow changes affect the shipped security posture.
 - Run `npm run audit:official-api` when changing official-coverage claims or raw API coverage behavior.
 

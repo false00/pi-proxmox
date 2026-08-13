@@ -42,9 +42,9 @@ curl -k -L -b "$(<cookie)" \
 
 ### List Available Templates
 ```
-GET /nodes/{node}/lxc/templates
+GET /nodes/{node}/storage/{storage}/content?content=vztmpl
 ```
-Returns all cached LXC templates on the node. Each entry includes `template` (path), `size`, `digest`, and `download_url`.
+Returns cached LXC template volume records from the selected storage backend.
 
 ### Downloading Templates
 
