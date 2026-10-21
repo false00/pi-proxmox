@@ -213,28 +213,28 @@ Get references/groups applied to the VM or container.
 
 ### Add a Cluster-level Accept Rule
 ```bash
-curl -X POST -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -d "action=ACCEPT&source=10.0.0.0/8&dest=10.0.0.0/8&proto=tcp&dport=80,443&enable=1&comment=Allow internal HTTP" \
   https://node:8006/api2/json/cluster/firewall/rules
 ```
 
 ### Create an Alias
 ```bash
-curl -X POST -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -d "name=mgmt_net&cidr=10.0.0.0/24&comment=Management network" \
   https://node:8006/api2/json/cluster/firewall/aliases
 ```
 
 ### Add a VM-level Firewall Rule
 ```bash
-curl -X POST -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -d "action=DROP&source=0.0.0.0/0&dport=22&proto=tcp&enable=1" \
   https://node:8006/api2/json/nodes/pve1/qemu/100/firewall/rules
 ```
 
 ### Enable Cluster Firewall
 ```bash
-curl -X PUT -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X PUT -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -d "enable=1&policy_in=DROP&policy_out=ACCEPT" \
   https://node:8006/api2/json/cluster/firewall/options
 ```

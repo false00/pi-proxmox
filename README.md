@@ -183,7 +183,7 @@ For day-to-day use and troubleshooting, see:
 
 ## Trust, safety, and operating model
 
-This is a **full-access infrastructure package**. Like any Pi extension, it can perform real changes in your environment if Pi is allowed to call its tools.
+This is a **full-access infrastructure package**. Like any Pi extension, it can perform real changes in your environment if Pi is allowed to call its tools. The package does not restrict itself: what it can actually do is bounded by the Proxmox permissions you grant its credentials, so use the [least-privilege setup](#recommended-setup-least-privilege) below.
 
 Important expectations:
 
@@ -192,7 +192,7 @@ Important expectations:
 - Destructive operations such as delete, stop, reboot, rollback, firewall changes, and ACL updates are exposed as explicit tools
 - Long-running operations return Proxmox task identifiers or agent PIDs so Pi can continue tracking them
 - Runtime failures are thrown back to Pi as **proper tool errors**, not fake success payloads
-- In the verified test environment, `/nodes/{node}/execute` required password/ticket fallback even though normal token-based API calls succeeded
+- In the verified test environment, `/nodes/{node}/execute` required password/ticket fallback even though normal token-based API calls succeeded; the endpoint is root-only in the Proxmox API, so the recommended least-privilege setup leaves that fallback unset and `proxmox_node_execute` fails closed
 - `/nodes/{node}/execute` is a real Proxmox endpoint for batching node-relative API requests; it does **not** provide arbitrary shell execution on the host
 
 If you are evaluating the package for production use, review:
@@ -212,6 +212,56 @@ If you are evaluating the package for production use, review:
 - A Pi runtime with extension support
 - A reachable Proxmox VE cluster over HTTPS
 
+### Recommended setup: least privilege
+
+Give the package a dedicated non-root user and an API token with privilege separation enabled, and grant roles on the narrowest path that works. Run these as an administrator on any cluster node:
+
+```bash
+# 1. Dedicated non-root user (no password is set; the API token is its credential)
+pveum user add pi-proxmox@pve --comment "pi-proxmox automation"
+
+# 2. API token with privilege separation enabled (the Proxmox default, set explicitly)
+pveum user token add pi-proxmox@pve automation --privsep 1 --comment "pi-proxmox"
+
+# 3. Resource pool holding only the guests and storage Pi may use (use your own IDs)
+pveum pool add pi-proxmox --comment "Managed by pi-proxmox"
+pveum pool modify pi-proxmox --vms 101,102 --storage local-lvm
+
+# 4. Start read-only: grant PVEAuditor on the pool to the user AND the token
+pveum acl modify /pool/pi-proxmox --roles PVEAuditor --users pi-proxmox@pve
+pveum acl modify /pool/pi-proxmox --roles PVEAuditor --tokens 'pi-proxmox@pve!automation'
+
+# 5. Check what the token can actually do
+pveum user token permissions pi-proxmox@pve automation
+```
+
+With privilege separation, the token's effective permissions are the **intersection** of the user's and the token's ACLs, so every grant must go to both. A grant on only one of them gives the token nothing on that path, which usually shows up as empty VM or container lists rather than an error.
+
+`pveum user token add` prints the token secret once; store it as `PROXMOX_TOKEN_SECRET`. In the web UI, the same objects live under **Datacenter → Permissions**; keep **Privilege Separation** checked when you add the token.
+
+Do not use a `root@pam` token or disable privilege separation to make tools work; grant the missing privilege on the narrowest path instead.
+
+### Permission tiers
+
+Add privileges only when a workflow needs them. Grant each role to both the user and the token.
+
+| Tier | Grant | Enables |
+|---|---|---|
+| Read-only (start here) | built-in `PVEAuditor` on `/pool/pi-proxmox` | listing and inspecting the pool's guests and storage |
+| Guest operator | custom role with `VM.Audit`, `VM.PowerMgmt`, `VM.Snapshot`, `VM.Snapshot.Rollback` on `/pool/pi-proxmox` | start, stop, shutdown, reboot, suspend, resume, snapshots, and rollback |
+| Provisioning and infrastructure | specific privileges from [docs/PERMISSIONS.md](docs/PERMISSIONS.md), or broad roles such as `PVEVMAdmin`, `PVEAdmin`, or `Administrator` | creating and deleting guests; node, storage, cluster, firewall, HA, and backup-job changes |
+| Access control | `Permissions.Modify` on the paths whose ACLs it changes; `User.Modify`, `Realm.AllocateUser`, `Group.Allocate`, or `Sys.Modify` under `/access` | user, group, role, ACL, and token tools |
+
+Guest operator role:
+
+```bash
+pveum role add PiProxmoxOperator --privs "VM.Audit VM.PowerMgmt VM.Snapshot VM.Snapshot.Rollback"
+pveum acl modify /pool/pi-proxmox --roles PiProxmoxOperator --users pi-proxmox@pve
+pveum acl modify /pool/pi-proxmox --roles PiProxmoxOperator --tokens 'pi-proxmox@pve!automation'
+```
+
+Reserve broad or admin roles, and the access-control privileges (which let a token change permissions, potentially its own), for people who truly need them, ideally on a separate token. [docs/PERMISSIONS.md](docs/PERMISSIONS.md) maps every tool to the privilege and path Proxmox checks.
+
 ### Connection settings
 
 Create `~/.config/pi-proxmox/.env`:
@@ -222,13 +272,9 @@ PROXMOX_HOST=192.168.1.100
 PROXMOX_PORT=8006
 PROXMOX_VERIFY_SSL=false
 
-# --- API Token (recommended) ---
-PROXMOX_TOKEN_ID=root@pam!automation
+# --- API token: dedicated non-root user, privilege separation enabled ---
+PROXMOX_TOKEN_ID=pi-proxmox@pve!automation
 PROXMOX_TOKEN_SECRET=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-
-# --- Password fallback (optional; mainly used when /execute rejects API-token auth) ---
-PROXMOX_USERNAME=root@pam
-PROXMOX_PASSWORD=yourpassword
 
 # --- Timeouts ---
 PROXMOX_TIMEOUT_MS=30000
@@ -237,19 +283,24 @@ PROXMOX_TOOL_TIMEOUT_MS=30000
 
 Values in `~/.config/pi-proxmox/.env` take precedence over environment variables.
 
-### Recommended token setup
+### Password fallback (optional, discouraged)
 
-> **Create an admin token with privilege separation disabled** if you want the full toolset to work.
->
-> **Web UI:** Go to **Datacenter → Permissions → API Tokens**, click **Add**, select your user (for example `root@pam`), enter a token name (for example `automation`), and **uncheck _Privilege Separation_**.
->
-> **CLI:**
->
-> ```bash
-> pveum user token add root@pam automation --privsep=0
-> ```
->
-> Without `--privsep=0` or with privilege separation left enabled in the UI, the token can appear to work while silently returning empty results for resources like VMs, containers, or storage.
+`PROXMOX_USERNAME` and `PROXMOX_PASSWORD` are not part of the recommended setup. Leave them unset.
+
+- `proxmox_node_execute` calls `/nodes/{node}/execute`, which Proxmox restricts to `root@pam` (the API viewer lists it as **Root only**). It rejects API tokens, so with the fallback unset the tool fails closed. That is the recommended behavior; the dedicated tools and `proxmox_api_call` can make the same node API requests one at a time.
+- When the fallback is set, the package retries `/nodes/{node}/execute` with a password ticket. That only works with `root@pam`, the node's Linux root password. `PROXMOX_USERNAME` defaults to `root@pam` when unset, so setting `PROXMOX_PASSWORD` alone means root credentials.
+- If no API token is configured, the fallback credentials are used for every request.
+
+If you deliberately need `proxmox_node_execute`, keep root credentials out of your everyday configuration and isolate them in a separate, deliberately chosen one, such as a separate OS account whose `~/.config/pi-proxmox/.env` is used only for that work:
+
+```env
+# WARNING: root@pam credentials. Uncomment only in an isolated configuration you chose deliberately;
+# they are used to retry the root-only /nodes/{node}/execute endpoint.
+# PROXMOX_USERNAME=root@pam
+# PROXMOX_PASSWORD=...
+```
+
+See [docs/PERMISSIONS.md](docs/PERMISSIONS.md#password-fallback-optional-discouraged) for the details and the other root-only operations.
 
 ### Token format
 
@@ -261,7 +312,7 @@ USER@REALM!TOKENNAME
 
 Examples:
 
-- `root@pam!automation`
+- `pi-proxmox@pve!automation`
 - `john@pve!ops-bot`
 
 Store the `.env` file with restricted permissions when possible:
@@ -276,10 +327,10 @@ chmod 600 ~/.config/pi-proxmox/.env
 |---|---|
 | `PROXMOX_HOST` | Proxmox server hostname or IP |
 | `PROXMOX_PORT` | HTTPS port, default `8006` |
-| `PROXMOX_TOKEN_ID` | Token ID such as `root@pam!automation` |
+| `PROXMOX_TOKEN_ID` | Token ID such as `pi-proxmox@pve!automation` |
 | `PROXMOX_TOKEN_SECRET` | Token secret UUID |
-| `PROXMOX_USERNAME` | Username for password-based auth fallback |
-| `PROXMOX_PASSWORD` | Password for password-based auth fallback, mainly for `/nodes/{node}/execute` |
+| `PROXMOX_USERNAME` | Username for the optional, discouraged password fallback; defaults to `root@pam` when unset. Leave unset |
+| `PROXMOX_PASSWORD` | Password for the optional, discouraged password fallback, used to retry the root-only `/nodes/{node}/execute` (and for every request if no token is set). Leave unset |
 | `PROXMOX_VERIFY_SSL` | Verify TLS certificates, `true` or `false` |
 | `PROXMOX_TIMEOUT_MS` | Per-request API timeout in milliseconds |
 | `PROXMOX_TOOL_TIMEOUT_MS` | Total Pi tool execution timeout in milliseconds |
@@ -646,7 +697,7 @@ When reporting problems, include the package version, Pi version, Proxmox versio
 - [docs/API_COVERAGE_AUDIT.md](docs/API_COVERAGE_AUDIT.md) — official API audit and coverage approach
 - [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) — verified environment notes
 - [docs/EXAMPLES.md](docs/EXAMPLES.md) — copyable usage examples
-- [docs/PERMISSIONS.md](docs/PERMISSIONS.md) — auth and token guidance
+- [docs/PERMISSIONS.md](docs/PERMISSIONS.md) — least-privilege token setup and the privileges each tool needs
 - [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) — common failure modes and fixes
 - [docs/](docs/) — bundled Proxmox reference material
 

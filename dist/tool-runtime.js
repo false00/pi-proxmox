@@ -40,6 +40,11 @@ export function normalizeExecuteCommands(commands) {
   });
 }
 
+const EXECUTE_ROOT_ONLY_GUIDANCE =
+  "/nodes/{node}/execute is root-only in Proxmox (the API viewer lists it as \"Root only\"), so no role or ACL on an API token satisfies it. " +
+  "With the recommended least-privilege setup this tool fails closed; run the individual requests with dedicated tools or proxmox_api_call instead. " +
+  "The optional root@pam password fallback (PROXMOX_USERNAME/PROXMOX_PASSWORD) is discouraged; see docs/PERMISSIONS.md.";
+
 export async function execOnNode(client, node, commands, onUpdate) {
   const endpoint = `/nodes/${node}/execute`;
   const normalizedCommands = normalizeExecuteCommands(commands);
@@ -50,6 +55,9 @@ export async function execOnNode(client, node, commands, onUpdate) {
     if (err.message?.includes("Permission check failed") && client.password) {
       emitProgress(onUpdate, "API token lacks /execute permission — falling back to password-based ticket auth...");
       return await client.postWithTicketAuth(endpoint, body);
+    }
+    if (err.message?.includes("Permission check failed") && !err.guidance) {
+      err.guidance = EXECUTE_ROOT_ONLY_GUIDANCE;
     }
     throw err;
   }
@@ -103,7 +111,7 @@ function toToolError(err) {
 
   const defaultGuidance = {
     validation: "Check parameter types and values.",
-    authentication: "Verify PROXMOX_API_TOKEN or PROXMOX_TOKEN_ID/PROXMOX_TOKEN_SECRET, or PROXMOX_USERNAME/PROXMOX_PASSWORD in ~/.config/pi-proxmox/.env",
+    authentication: "Verify PROXMOX_TOKEN_ID/PROXMOX_TOKEN_SECRET (or PROXMOX_API_TOKEN) in ~/.config/pi-proxmox/.env. For permission errors, grant the missing privilege to both the API token and its user on the narrowest path that covers the resource (a privilege-separated token gets the intersection of both); see docs/PERMISSIONS.md. Do not switch to a root or full-privilege token.",
     not_found: "The requested resource does not exist. Check IDs and paths.",
     timeout: "The request or tool timed out. The node may be busy or unreachable. Increase PROXMOX_TIMEOUT_MS or PROXMOX_TOOL_TIMEOUT_MS if needed.",
     network: "Cannot connect to the Proxmox host. Verify PROXMOX_HOST and network connectivity.",

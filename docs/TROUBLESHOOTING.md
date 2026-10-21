@@ -12,8 +12,13 @@ Symptoms:
 
 Likely causes:
 
-- token privilege separation is enabled
-- token permissions are too narrow
+- the API token, or its user, has no grant on a path that covers those guests; a privilege-separated token gets the intersection of both, so both need the grant
+- the guests are outside the pool or path you granted
+
+Recommended fix:
+
+- grant the role (for example `PVEAuditor`) to both the user and the token on the narrowest path that covers the guests
+- do not switch to a `root@pam` token or disable privilege separation
 
 See:
 
@@ -28,11 +33,26 @@ Symptoms:
 
 Likely cause:
 
-- the special `/nodes/{node}/execute` endpoint rejected API-token auth in your environment
+- `/nodes/{node}/execute` is root-only in the Proxmox API (`root@pam`), so it rejects API tokens; with the recommended least-privilege setup this failure is expected
 
 Recommended fix:
 
-- configure `PROXMOX_USERNAME` and `PROXMOX_PASSWORD` so the documented ticket-auth retry path can be used
+- run the batched requests individually with the dedicated tools or `proxmox_api_call`
+- the `root@pam` password fallback (`PROXMOX_USERNAME` and `PROXMOX_PASSWORD`) is optional and discouraged; if you deliberately enable it, isolate it as described in [docs/PERMISSIONS.md](PERMISSIONS.md)
+
+## `Permission check failed` errors
+
+Symptoms:
+
+- a tool fails with an `authentication` category error that mentions `Permission check failed`
+
+Likely cause:
+
+- the token, or its user, lacks the privilege that endpoint checks on that path
+
+Recommended fix:
+
+- look the tool up in the privilege map in [docs/PERMISSIONS.md](PERMISSIONS.md) and grant the missing privilege through a role, to both the user and the token, on the narrowest path that works
 
 ## Guest agent operations fail
 

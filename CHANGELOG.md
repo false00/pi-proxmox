@@ -16,6 +16,8 @@ The format is intentionally simple and human-readable.
 
 ### Security
 - Updated `@earendil-works/pi-coding-agent`, `undici`, `typebox`, `brace-expansion`, and `protobufjs` to patched versions that pass the repository audit gate.
+- Setup guidance now recommends a dedicated non-root user, a privilege-separated API token, and narrowly scoped ACLs (starting read-only) instead of a `root@pam` token with privilege separation disabled. `docs/PERMISSIONS.md` maps each tool to the privilege and path Proxmox checks.
+- The password fallback is now documented as optional and discouraged: `/nodes/{node}/execute` is root-only, so leaving the fallback unset makes `proxmox_node_execute` fail closed. Runtime hints, error guidance, tool descriptions, and the auto-created `.env` template no longer point to root tokens or to disabling privilege separation.
 
 ## 1.0.2 - 2026-07-16
 

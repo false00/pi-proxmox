@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { suite, autoRun } from "./helpers.mjs";
 
 function readJson(path) {
@@ -93,6 +94,41 @@ export async function run() {
       "## Release checklist",
     ]) {
       if (!agents.includes(section)) throw new Error(`Missing AGENTS section: ${section}`);
+    }
+  });
+
+  await s.test("auth guidance recommends least-privilege API tokens", async () => {
+    const files = [
+      "README.md",
+      "AGENTS.md",
+      "CONTRIBUTING.md",
+      "SECURITY.md",
+      ...readdirSync("docs").filter(name => name.endsWith(".md")).map(name => join("docs", name)),
+      ...readdirSync("dist", { recursive: true }).filter(name => name.endsWith(".js")).map(name => join("dist", name)),
+    ];
+    const forbidden = [
+      { pattern: /pveum user token add root@pam/, reason: "creates a root@pam token" },
+      { pattern: /pveum user token add[^\n]*--privsep[= ]0/, reason: "creates a token without privilege separation" },
+      { pattern: /uncheck[^\n]*Privilege Separation|Privilege Separation[^\n]*UNCHECKED/i, reason: "tells users to disable privilege separation" },
+      { pattern: /PVEAPIToken=root@pam!|^PROXMOX_TOKEN_ID=root@pam/m, reason: "uses a root@pam token as an example" },
+      { pattern: /^PROXMOX_PASSWORD=\S/m, reason: "enables the password fallback in an .env example" },
+    ];
+    for (const path of files) {
+      const text = readText(path);
+      for (const { pattern, reason } of forbidden) {
+        if (pattern.test(text)) throw new Error(`${path} ${reason}`);
+      }
+    }
+
+    const permissions = readText("docs/PERMISSIONS.md");
+    for (const required of [
+      "pveum user token add pi-proxmox@pve automation --privsep 1",
+      "--tokens 'pi-proxmox@pve!automation'",
+      "PVEAuditor",
+      "/pool/pi-proxmox",
+      "**Root only**",
+    ]) {
+      if (!permissions.includes(required)) throw new Error(`docs/PERMISSIONS.md is missing least-privilege guidance: ${required}`);
     }
   });
 

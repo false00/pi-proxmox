@@ -149,20 +149,20 @@ View CRUSH map rules and hierarchy.
 
 ### Get Ceph Health
 ```bash
-curl -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   https://node:8006/api2/json/cluster/ceph/status
 ```
 
 ### Create a New OSD
 ```bash
-curl -X POST -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -d "dev=/dev/sdb&node=pve1" \
   https://node:8006/api2/json/cluster/ceph/osd
 ```
 
 ### Create a Pool
 ```bash
-curl -X POST -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -d "poolname=ssd-pool&pg_num=128&size=3" \
   https://node:8006/api2/json/cluster/ceph/pool
 ```

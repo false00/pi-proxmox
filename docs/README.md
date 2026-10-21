@@ -6,7 +6,7 @@ Complete documentation of the Proxmox VE REST API, covering all resource categor
 - [API Coverage Audit](API_COVERAGE_AUDIT.md) — How this package approaches full official API reach
 - [Compatibility Notes](COMPATIBILITY.md) — Verified Pi and Proxmox versions
 - [Examples](EXAMPLES.md) — Practical usage recipes
-- [Permissions Guide](PERMISSIONS.md) — Token, privilege separation, and `/execute` auth behavior
+- [Permissions Guide](PERMISSIONS.md) — Least-privilege token setup, privilege separation, per-tool privileges, and the root-only `/execute` endpoint
 - [Troubleshooting](TROUBLESHOOTING.md) — Common failure modes and fixes
 
 ## API Fundamentals

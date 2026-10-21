@@ -120,6 +120,8 @@ Tool:
 
 This endpoint is **not shell execution**. It batches node-relative Proxmox API requests.
 
+It is also **root-only** in the Proxmox API. With the recommended least-privilege API token it fails closed unless the optional, discouraged `root@pam` password fallback is configured (see [PERMISSIONS.md](PERMISSIONS.md)). The same requests can be made one at a time with dedicated tools or `proxmox_api_call`.
+
 Example command batch:
 
 ```json

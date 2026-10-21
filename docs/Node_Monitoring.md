@@ -139,30 +139,30 @@ Get version information at the cluster level.
 
 ### Get Real-time Node Status
 ```bash
-curl -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   https://node:8006/api2/json/nodes/pve1/status
 ```
 
 ### Get Historical CPU Data for the Last Day
 ```bash
-curl -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   "https://node:8006/api2/json/nodes/pve1/rrddata?timeframe=day&cf=AVERAGE"
 ```
 
 ### List Recent Failed Tasks
 ```bash
-curl -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   "https://node:8006/api2/json/nodes/pve1/tasks?errors=1&limit=50"
 ```
 
 ### Get Task Log by UPID
 ```bash
-curl -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   https://node:8006/api2/json/nodes/pve1/tasks/UPID:node:.../log
 ```
 
 ### Restart the pveproxy Service
 ```bash
-curl -X POST -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   https://node:8006/api2/json/nodes/pve1/services/pveproxy/restart
 ```

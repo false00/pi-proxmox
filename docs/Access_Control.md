@@ -119,10 +119,11 @@ Modify ACL entries.
 **Parameters:**
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `path` | string | Resource path (e.g., `/`, `/vms/100`, `/storage/local`) |
+| `path` | string | Resource path (e.g., `/`, `/vms/100`, `/storage/local`, `/pool/dev`) |
 | `roles` | string | Comma-separated role IDs |
 | `users` | string | Comma-separated user IDs |
 | `groups` | string | Comma-separated group IDs |
+| `tokens` | string | Comma-separated API token IDs (e.g., `pi-proxmox@pve!automation`) |
 | `propagate` | boolean | Propagate to child paths |
 | `delete` | boolean | Remove the ACL entry instead of adding |
 
@@ -195,6 +196,8 @@ DELETE /access/users/{userid}/token/{tokenid}
 ```
 Token management for individual users. See [API_Authentication](API_Authentication.md) for token usage.
 
+Tokens are created with privilege separation by default (`privsep=1`): a privilege-separated token needs its own ACL entries (the `tokens` parameter of `PUT /access/acl`), and its effective permissions are the intersection of its user's and its own. Grant roles to both the user and the token, on the narrowest path that works. See [PERMISSIONS](PERMISSIONS.md) for the setup this package recommends.
+
 ## OpenID Connect
 ```
 GET /access/openid
@@ -204,10 +207,12 @@ OpenID Connect configuration.
 ## Permissions Summary
 | Endpoint | Required Permission |
 |----------|-------------------|
-| User CRUD | `User.Modify` on `/access` |
-| Group CRUD | `User.Modify` on `/access` |
-| Role CRUD | `Permissions.Modify` on `/access` |
-| ACL management | `Permissions.Modify` on the target path |
+| User create/delete | `Realm.AllocateUser` on `/access/realm/<realm>` and `User.Modify` for the user's groups (`/access/groups/<group>`, or `/access/groups`) |
+| User read/update | `User.Modify` (read: or `Sys.Audit`) for the user's groups |
+| Group create/update/delete | `Group.Allocate` on `/access/groups` |
+| Role create/update/delete | `Sys.Modify` on `/access` |
+| ACL management | `Permissions.Modify` on the target path (or `Datastore.Allocate`, `VM.Allocate`, `Pool.Allocate` for `/storage/...`, `/vms/...`, `/pool/...`) |
+| API tokens | Own user: always allowed; others: `User.Modify` for the user's groups |
 | Domain config | `Sys.Audit` (read), `Sys.Modify` (write) |
 | TFA management | `User.Modify` on `/access` |
 | Password change | Self: always allowed; others: `User.Modify` |

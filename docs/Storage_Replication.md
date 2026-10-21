@@ -117,31 +117,31 @@ Replication uses standard cron schedule format:
 
 ### Create a Replication Job (Every 15 Minutes)
 ```bash
-curl -X POST -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -d "vmid=100&target=pve2&schedule=*/15 * * * *&rate=50MB&comment=Primary VM replication" \
   https://node:8006/api2/json/nodes/pve1/replication
 ```
 
 ### Trigger Immediate Replication
 ```bash
-curl -X POST -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   https://node:8006/api2/json/nodes/pve1/replication/100-0/run
 ```
 
 ### Check Replication Status
 ```bash
-curl -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   https://node:8006/api2/json/datacenter/replication
 ```
 
 ### View Replication Log
 ```bash
-curl -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   https://node:8006/api2/json/nodes/pve1/replication/100-0/log
 ```
 
 ### Delete a Replication Job
 ```bash
-curl -X DELETE -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X DELETE -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   https://node:8006/api2/json/nodes/pve1/replication/100-0
 ```

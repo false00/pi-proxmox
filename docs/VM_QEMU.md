@@ -240,42 +240,42 @@ View pending configuration changes (applied on next reboot).
 
 ### Create and Start a VM
 ```bash
-curl -X POST -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -d "vmid=200&name=web-server&cores=4&memory=8192&net0=virtio,bridge=vmbr0&ostype=l26&ide2=local:iso/ubuntu-24.04.iso,media=cdrom&boot=order=ide2;scsi0&scsihw=virtio-scsi-single&start=1" \
   https://node:8006/api2/json/nodes/pve1/qemu
 ```
 
 ### Take a Snapshot
 ```bash
-curl -X POST -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -d "snapname=pre-update&description=Before kernel update&vmstate=1" \
   https://node:8006/api2/json/nodes/pve1/qemu/200/snapshot
 ```
 
 ### Clone a VM
 ```bash
-curl -X POST -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -d "newid=201&name=web-server-clone&full=1&target=pve2" \
   https://node:8006/api2/json/nodes/pve1/qemu/200/clone
 ```
 
 ### Live Migrate a VM
 ```bash
-curl -X POST -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -d "target=pve2&online=1" \
   https://node:8006/api2/json/nodes/pve1/qemu/200/migrate
 ```
 
 ### Resize a Disk
 ```bash
-curl -X PUT -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X PUT -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -d "disk=scsi0&size=+20G" \
   https://node:8006/api2/json/nodes/pve1/qemu/200/resize
 ```
 
 ### Run Command via QEMU Agent
 ```bash
-curl -X POST -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -d "command=uptime" \
   https://node:8006/api2/json/nodes/pve1/qemu/200/agent/exec
 ```
