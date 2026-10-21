@@ -45,7 +45,10 @@ export class ProxmoxClient {
       }
     }
 
-    if (body && typeof body === "object") {
+    // pveproxy only accepts a request body on POST and PUT; GET and DELETE parameters go in the query string.
+    const sendsBody = method === "POST" || method === "PUT";
+
+    if (sendsBody && body && typeof body === "object") {
       headers["Content-Type"] = "application/x-www-form-urlencoded";
     }
 
@@ -66,9 +69,9 @@ export class ProxmoxClient {
       let fetchUrl = url;
       let fetchBody = undefined;
 
-      if (method === "GET" && params) {
+      if (!sendsBody && params) {
         fetchUrl = `${url}?${params}`;
-      } else if (method !== "GET" && params) {
+      } else if (sendsBody && params) {
         fetchBody = params;
       }
 

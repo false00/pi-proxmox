@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { autoRun, suite } from "./helpers.mjs";
+import { ProxmoxClient } from "../dist/proxmox-client.js";
 import * as vmTools from "../dist/tools/vm.js";
 import * as lxcTools from "../dist/tools/lxc.js";
 import * as nodeTools from "../dist/tools/node.js";
@@ -126,6 +127,7 @@ function sampleParams(tool, variant = {}) {
 }
 
 const FIREWALL_LEVELS = ["cluster", "pve1", "vm/100", "lxc/100"];
+const firewallScope = level => ({ level, node: level.includes("/") ? "pve1" : undefined });
 const GUEST_OR_CLUSTER_ONLY = new Set([
   "proxmox_firewall_aliases",
   "proxmox_firewall_alias_create",
@@ -140,7 +142,7 @@ const GUEST_FIREWALL_OPTIONS = ["node", "enable", "policy_in", "policy_out", "lo
 const VARIANTS = {
   proxmox_storage_scan: [{}, { type: "nfs" }, { type: "cifs" }, { type: "iscsi" }, { type: "lvm" }, { type: "lvmthin" }, { type: "zfs" }],
   proxmox_node_hardware: [{}, { type: "pci" }, { type: "usb" }],
-  proxmox_firewall_rule_add: FIREWALL_LEVELS.map(level => ({ level, type: "in" })),
+  proxmox_firewall_rule_add: FIREWALL_LEVELS.map(level => ({ ...firewallScope(level), type: "in" })),
   // Each firewall level accepts a different option set, as the tool description says.
   proxmox_firewall_options_update: [
     { level: "cluster", $only: ["enable", "policy_in", "policy_out"] },
@@ -156,7 +158,7 @@ function variantsFor(tool) {
   if (VARIANTS[tool.name]) return VARIANTS[tool.name];
   if (tool.parameters?.properties?.level) {
     const levels = GUEST_OR_CLUSTER_ONLY.has(tool.name) ? FIREWALL_LEVELS.filter(level => level !== "pve1") : FIREWALL_LEVELS;
-    return levels.map(level => ({ level }));
+    return levels.map(firewallScope);
   }
   return [{}];
 }
@@ -356,6 +358,34 @@ export async function run() {
     if (JSON.stringify(summary) !== JSON.stringify(expected)) throw new Error(`Unexpected backup job mapping: ${JSON.stringify(summary)}`);
   });
 
+  await s.test("REST client sends DELETE parameters in the query string, never a body", async () => {
+    // pveproxy answers a DELETE that carries a body with 501 "Unexpected content for method".
+    const original = globalThis.fetch;
+    const requests = [];
+    globalThis.fetch = async (url, init) => {
+      requests.push({ url: String(url), init });
+      return new Response(JSON.stringify({ data: null }), { status: 200 });
+    };
+    try {
+      const client = new ProxmoxClient();
+      Object.assign(client, { host: "pve.example.invalid", port: "8006", token: "test@pve!offline=not-a-secret", _dispatcher: undefined });
+      await client.delete("/cluster/replication/100-0", { keep: 1, force: undefined });
+      await client.delete("/nodes/pve1/qemu/100", { purge: 1 });
+      await client.post("/cluster/replication", { id: "100-0", type: "local", target: "pve2" });
+      await client.get("/nodes/pve1/journal", { lastentries: 10 });
+    } finally {
+      globalThis.fetch = original;
+    }
+    const [replicationDelete, vmDelete, post, get] = requests;
+    for (const [request, query] of [[replicationDelete, "/cluster/replication/100-0?keep=1"], [vmDelete, "/nodes/pve1/qemu/100?purge=1"], [get, "/nodes/pve1/journal?lastentries=10"]]) {
+      if (!request.url.endsWith(`/api2/json${query}`)) throw new Error(`Expected ${query}, got ${request.url}`);
+      if (request.init.body !== undefined) throw new Error(`${request.init.method} ${query} must not send a body`);
+      if (request.init.headers["Content-Type"]) throw new Error(`${request.init.method} ${query} must not send a Content-Type`);
+    }
+    if (!post.url.endsWith("/api2/json/cluster/replication")) throw new Error(`Unexpected POST URL ${post.url}`);
+    if (post.init.body !== "id=100-0&type=local&target=pve2") throw new Error(`Unexpected POST body ${post.init.body}`);
+  });
+
   await s.test("operations Proxmox does not offer are not exposed", async () => {
     if ("lxcReset" in lxcTools) throw new Error("lxc.js still exports lxcReset");
     const names = [...dedicatedFactories(), ...Object.values(rawTools)].map(factory => factory(recordingClient([])).name);
@@ -368,6 +398,9 @@ export async function run() {
     await expectValidationError(firewallTools.firewallIpsetCreate, { level: "pve1", name: "blocklist" }, "node-level IPSet");
     await expectValidationError(firewallTools.firewallRules, { level: "vm/100" }, "guest level without node");
     await expectValidationError(firewallTools.firewallRules, { level: "ct/100", node: "pve1" }, "unknown level");
+    await expectValidationError(firewallTools.firewallRuleAdd, { node: "pve1", type: "in", action: "DROP" }, "node without level would hit the cluster firewall");
+    await expectValidationError(firewallTools.firewallOptionsUpdate, { level: "cluster", node: "pve1", enable: 1 }, "node with cluster level");
+    await expectValidationError(firewallTools.firewallRulesDelete, { level: "pve1", node: "pve2", pos: "0" }, "node conflicting with node level");
     await expectValidationError(storageTools.storageScan, { node: "pve1", type: "ceph" }, "unsupported scan type");
     await expectValidationError(storageTools.storageScan, { node: "pve1", type: "nfs" }, "nfs scan without server");
     await expectValidationError(nodeTools.nodeHardware, { node: "pve1", type: "cpu" }, "unsupported hardware type");

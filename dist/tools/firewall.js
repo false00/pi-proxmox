@@ -3,12 +3,10 @@ import { throwIfAborted, emitProgress, safeExecute, validationError } from "../t
 
 const LEVEL = "Scope: 'cluster' (default), a node name, 'vm/<vmid>', or 'lxc/<vmid>'";
 const GUEST_OR_CLUSTER_LEVEL = "Scope: 'cluster' (default), 'vm/<vmid>', or 'lxc/<vmid>'; Proxmox has no node-level aliases or IPSets";
-const NODE = "Node the guest runs on (required for 'vm/<vmid>' and 'lxc/<vmid>')";
+const NODE = "Node the guest runs on; only for 'vm/<vmid>' and 'lxc/<vmid>' levels (put a node name in level for node-level rules)";
 
 function resolveFwPath(level, node, { allowNodeLevel = true } = {}) {
-  if (!level || level === "cluster") return "/cluster/firewall";
-
-  const guest = /^(vm|lxc)\/(\d+)$/.exec(level);
+  const guest = level ? /^(vm|lxc)\/(\d+)$/.exec(level) : null;
   if (guest) {
     if (!node) {
       throw validationError(`node is required for firewall level '${level}'`, "Pass the node the guest runs on, for example node='pve1'.");
@@ -16,8 +14,19 @@ function resolveFwPath(level, node, { allowNodeLevel = true } = {}) {
     return `/nodes/${node}/${guest[1] === "vm" ? "qemu" : "lxc"}/${guest[2]}/firewall`;
   }
 
+  // Refuse a stray node instead of silently changing the cluster-wide firewall.
+  if (!level || level === "cluster") {
+    if (node) {
+      throw validationError(`node '${node}' was given without a node or guest level`, `Pass level='${node}' for that node's firewall, level='vm/<vmid>' or 'lxc/<vmid>' for a guest, or omit node for the cluster firewall.`);
+    }
+    return "/cluster/firewall";
+  }
+
   if (level.includes("/")) {
     throw validationError(`Unsupported firewall level '${level}'`, "Use 'cluster', a node name, 'vm/<vmid>', or 'lxc/<vmid>'.");
+  }
+  if (node && node !== level) {
+    throw validationError(`node '${node}' conflicts with node-level firewall level '${level}'`, "For a node's firewall, name the node in level and omit node.");
   }
   if (!allowNodeLevel) {
     throw validationError(`Proxmox has no node-level firewall aliases or IPSets (level '${level}')`, "Use level 'cluster', 'vm/<vmid>', or 'lxc/<vmid>'.");
