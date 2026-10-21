@@ -10,7 +10,7 @@ export async function run() {
   let uploadResult;
   await s.test("upload README.md as ISO to local storage", async () => {
     const url = "https://raw.githubusercontent.com/false00/pi-proxmox/master/README.md";
-    const downloadResp = await fetch(url, { dispatcher: client._dispatcher });
+    const downloadResp = await fetch(url);
     if (!downloadResp.ok) throw new Error(`Download failed: ${downloadResp.status}`);
 
     const buffer = await downloadResp.arrayBuffer();

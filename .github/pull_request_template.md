@@ -9,6 +9,7 @@ Describe the change.
 - [ ] Updated maintainer guidance in `AGENTS.md` if needed
 - [ ] Added or updated tests
 - [ ] Ran `npm test`
+- [ ] Ran `npm run test:endpoints` if tool endpoints, parameters, or docs that name endpoints changed
 - [ ] Ran `npm pack --dry-run` if packaging or metadata changed
 - [ ] Ran `npm run audit:official-api` if API coverage claims or raw coverage behavior changed
 

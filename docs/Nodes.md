@@ -67,11 +67,11 @@ See [Storage](Storage.md) for storage management, [ISO_Template_Management](ISO_
 ## Replication
 ```
 GET /nodes/{node}/replication
-POST /nodes/{node}/replication
-POST /nodes/{node}/replication/{id}/run
-DELETE /nodes/{node}/replication/{id}
+GET /nodes/{node}/replication/{id}/status
+GET /nodes/{node}/replication/{id}/log
+POST /nodes/{node}/replication/{id}/schedule_now
 ```
-See [Storage_Replication](Storage_Replication.md) for replication management.
+Jobs are defined cluster-wide under `/cluster/replication`; the node endpoints show their status and logs and run a job early. See [Storage_Replication](Storage_Replication.md) for replication management.
 
 ## SDN (Per-Node)
 ```
@@ -87,7 +87,7 @@ The following areas are covered in detail in [Node_Administration](Node_Administ
 - Certificates, subscription
 - System logs, journal, DNS, time
 - APT package management
-- Command execution, node stop/reboot, WOL
+- Command execution, node shutdown/reboot, WOL
 
 ## Node Monitoring
 Covered in detail in [Node_Monitoring](Node_Monitoring.md):

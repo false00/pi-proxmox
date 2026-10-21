@@ -167,11 +167,11 @@ export function vmDelete(client) {
   return {
     name: "proxmox_vm_delete",
     label: "Delete Virtual Machine",
-    description: "Deletes a virtual machine. Optionally purges from backup jobs.",
+    description: "Deletes a virtual machine. purge=1 also removes it from related configuration such as backup jobs, replication jobs, and HA.",
     parameters: Type.Object({
       node: Type.String({ description: "Proxmox node name" }),
       vmid: Type.Integer({ description: "VM ID to delete" }),
-      purge: Type.Optional(Type.Integer({ description: "Also remove from backup jobs: 1 or 0" })),
+      purge: Type.Optional(Type.Integer({ description: "Also remove it from related configuration (backup jobs, replication jobs, HA): 1 or 0" })),
     }),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
@@ -234,7 +234,7 @@ export function vmMigrate(client) {
       vmid: Type.Integer({ description: "VM ID to migrate" }),
       target: Type.String({ description: "Target node name" }),
       online: Type.Optional(Type.Integer({ description: "Live migration: 1 or 0 (default: 1)" })),
-      force: Type.Optional(Type.Integer({ description: "Force migration: 1 or 0" })),
+      force: Type.Optional(Type.Integer({ description: "Allow migrating a VM that uses local devices (root@pam only): 1 or 0" })),
     }),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
@@ -295,7 +295,7 @@ export function vmSuspend(client) {
   return {
     name: "proxmox_vm_suspend",
     label: "Suspend Virtual Machine",
-    description: "Suspends a running virtual machine (saves state to disk).",
+    description: "Suspends (pauses) a running virtual machine; its state stays in memory. Use proxmox_vm_resume to continue it.",
     parameters: Type.Object({ node: Type.String({ description: "Proxmox node name" }), vmid: Type.Integer({ description: "VM ID" }) }),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
@@ -323,7 +323,7 @@ export function vmUpdateConfig(client) {
   return {
     name: "proxmox_vm_update_config",
     label: "Update VM Configuration",
-    description: "Updates the configuration of a virtual machine. Supports all VM config parameters (CPU, memory, network, disks, etc.).",
+    description: "Updates the configuration of a virtual machine. Supports all VM config parameters (CPU, memory, network, disks, etc.). Pool membership is not a VM config option; change it through the /pools API with proxmox_api_call.",
     parameters: Type.Object({
       node: Type.String({ description: "Proxmox node name" }),
       vmid: Type.Integer({ description: "VM ID" }),
@@ -336,7 +336,6 @@ export function vmUpdateConfig(client) {
       boot: Type.Optional(Type.String({ description: "Boot order" })),
       scsihw: Type.Optional(Type.String({ description: "SCSI controller" })),
       agent: Type.Optional(Type.Integer({ description: "Enable QEMU agent: 1 or 0" })),
-      pool: Type.Optional(Type.String({ description: "Resource pool" })),
       tags: Type.Optional(Type.String({ description: "Comma-separated tags" })),
       onboot: Type.Optional(Type.Integer({ description: "Start on node boot: 1 or 0" })),
       protection: Type.Optional(Type.Integer({ description: "Enable protection: 1 or 0" })),
@@ -542,7 +541,7 @@ export function vmAgentGetNetworkInterfaces(client) {
     }),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
-      return await client.get(`/nodes/${params.node}/qemu/${params.vmid}/agent/get-network-interfaces`);
+      return await client.get(`/nodes/${params.node}/qemu/${params.vmid}/agent/network-get-interfaces`);
     }),
   };
 }
@@ -615,7 +614,7 @@ export function vmAgentFileRead(client) {
   return {
     name: "proxmox_vm_agent_file_read",
     label: "VM Agent File Read",
-    description: "Reads a file from a VM via the QEMU Guest Agent. Returns content as base64-encoded data.",
+    description: "Reads a file from a VM via the QEMU Guest Agent. Proxmox returns the decoded file content in 'content' (up to 16 MiB) and sets 'truncated' when it did not reach the end of the file.",
     parameters: Type.Object({
       node: Type.String({ description: "Proxmox node name" }),
       vmid: Type.Integer({ description: "VM ID" }),
@@ -633,7 +632,7 @@ export function vmAgentFileWrite(client) {
   return {
     name: "proxmox_vm_agent_file_write",
     label: "VM Agent File Write",
-    description: "Writes base64-encoded content to a file in a VM via the QEMU Guest Agent.",
+    description: "Writes base64-encoded content to a file in a VM via the QEMU Guest Agent. The content is passed to the guest as-is (encode=0), so the file receives the decoded bytes.",
     parameters: Type.Object({
       node: Type.String({ description: "Proxmox node name" }),
       vmid: Type.Integer({ description: "VM ID" }),
@@ -643,7 +642,7 @@ export function vmAgentFileWrite(client) {
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
       emitProgress(onUpdate, `Writing to ${params.file} in VM ${params.vmid} via guest agent...`);
-      return await client.post(`/nodes/${params.node}/qemu/${params.vmid}/agent/file-write`, { file: params.file, content: params.content });
+      return await client.post(`/nodes/${params.node}/qemu/${params.vmid}/agent/file-write`, { file: params.file, content: params.content, encode: 0 });
     }),
   };
 }

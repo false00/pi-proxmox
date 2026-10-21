@@ -78,9 +78,11 @@
     "test:mcp": "node tests/mcp.test.mjs",
     "test:raw-api": "node tests/raw-api.test.mjs",
     "test:package": "node tests/package.test.mjs",
+    "test:endpoints": "node tests/endpoints.test.mjs",
     "test:security": "npm audit --audit-level=high",
-    "test:ci": "npm run test:smoke && npm run test:mcp && npm run test:package && npm run test:security && npm run audit:official-api",
+    "test:ci": "npm run test:smoke && npm run test:endpoints && npm run test:mcp && npm run test:package && npm run test:security && npm run audit:official-api",
     "audit:official-api": "node scripts/audit-official-api.mjs",
+    "update:api-snapshot": "node scripts/update-api-snapshot.mjs",
     "lint": "echo 'no linter configured'",
     "mcp": "node dist/mcp-server.js"
   },

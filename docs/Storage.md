@@ -13,20 +13,25 @@ This document covers the API endpoints for managing storage backends, storage co
 ```
 GET /storage
 ```
-Returns all configured storage backends with their type, status, and capacity.
+Returns all configured storage backends with their type and configuration.
 
 ```
 GET /nodes/{node}/storage
 ```
-List storage available on a specific node.
+List the storage available on a specific node, with status and capacity (`active`, `used`, `avail`, `total`).
 
 ### Get Storage
 ```
 GET /storage/{storageid}
 ```
-Get detailed configuration and status for a specific storage backend.
+Get the configuration of a specific storage backend.
 
-**Returns:** `storage` (ID), `type` (backend type), `content` (content types), `enabled`, `active`, `used`, `available`, `total`, `shared`.
+**Returns:** `storage` (ID), `type` (backend type), `content` (content types), `shared`, `disable`, `nodes`, and the type-specific options.
+
+```
+GET /nodes/{node}/storage/{storage}/status
+```
+Get the status and capacity of a storage backend on a node.
 
 ### Create Storage
 ```
@@ -38,21 +43,20 @@ Add a new storage backend.
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `storage` | string | Storage ID |
-| `type` | string | Backend type: `dir`, `nfs`, `cifs`, `lvm`, `lvmthin`, `zfs`, `zfsov`er`, `rbd`, `cephfs`, `glusterfs`, `btrfs`, `pbs`, `iscsi`, `iscsidirect`, `sheepdog` |
+| `type` | string | Backend type: `dir`, `nfs`, `cifs`, `lvm`, `lvmthin`, `zfspool`, `zfs` (ZFS over iSCSI), `rbd`, `cephfs`, `btrfs`, `pbs`, `iscsi`, `iscsidirect`, `esxi` |
 | `content` | string | Comma-separated: `images`, `iso`, `vztmpl`, `backup`, `snippets`, `rootdir` |
 | `nodes` | string | Comma-separated node list |
 | `disable` | boolean | Disable storage |
-| `maxfiles` | integer | Max backup files per VM |
+| `prune-backups` | string | Backup retention, e.g. `keep-last=3,keep-weekly=4` |
 | `shared` | boolean | Shared storage |
 | `path` | string | Filesystem path (for dir) |
-| `server` | string | Server address (for NFS/CIFS) |
+| `server` | string | Server address (for NFS/CIFS/PBS) |
 | `export` | string | Export path (for NFS) |
-| `pool` | string | ZFS pool or LVM volume group |
-| `monhost` | string | Monitor host (for RBD) |
-| `poolname` | string | RBD pool name |
+| `pool` | string | ZFS pool (zfspool) or RBD pool (rbd) |
+| `monhost` | string | Monitor hosts (for external Ceph clusters) |
 | `datastore` | string | PBS datastore |
-| `username` | string | PBS username |
-| `password` | string | PBS password |
+| `username` | string | Username (PBS, CIFS) or RBD ID |
+| `password` | string | Password (PBS, CIFS) |
 | `fingerprint` | string | TLS fingerprint (for PBS) |
 
 ### Update Storage

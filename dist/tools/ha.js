@@ -5,11 +5,11 @@ export function haStatus(client) {
   return {
     name: "proxmox_ha_status",
     label: "Get HA Status",
-    description: "Gets the overall High Availability status including quorum and manager state.",
+    description: "Gets the current High Availability manager status (GET /cluster/ha/status/current): quorum, master, local resource managers, and service states.",
     parameters: Type.Object({}),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
-      return await client.get("/cluster/ha/status");
+      return await client.get("/cluster/ha/status/current");
     }),
   };
 }
@@ -18,7 +18,7 @@ export function haResourcesList(client) {
   return {
     name: "proxmox_ha_resources_list",
     label: "List HA Resources",
-    description: "Lists all HA-managed resources with their current state.",
+    description: "Lists all HA-managed resources with their configured (requested) state. Use proxmox_ha_status for the live service state.",
     parameters: Type.Object({}),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
@@ -66,7 +66,7 @@ export function haGroupsList(client) {
   return {
     name: "proxmox_ha_groups_list",
     label: "List HA Groups",
-    description: "Lists all configured HA groups with node preferences.",
+    description: "Lists all configured HA groups with node preferences. HA groups are deprecated in Proxmox VE 9 in favor of HA rules (/cluster/ha/rules, reachable with proxmox_api_call).",
     parameters: Type.Object({}),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
@@ -79,7 +79,7 @@ export function haGroupCreate(client) {
   return {
     name: "proxmox_ha_group_create",
     label: "Create HA Group",
-    description: "Creates a High Availability group with node priority ordering.",
+    description: "Creates a High Availability group with node priority ordering. HA groups are deprecated in Proxmox VE 9 in favor of HA rules (/cluster/ha/rules, reachable with proxmox_api_call).",
     parameters: Type.Object({
       group: Type.String({ description: "Group identifier" }),
       nodes: Type.String({ description: "Ordered comma-separated node names (e.g., 'pve1,pve2,pve3')" }),
@@ -99,7 +99,7 @@ export function haGroupDelete(client) {
   return {
     name: "proxmox_ha_group_delete",
     label: "Delete HA Group",
-    description: "Deletes an HA group.",
+    description: "Deletes an HA group. HA groups are deprecated in Proxmox VE 9 in favor of HA rules.",
     parameters: Type.Object({ group: Type.String({ description: "Group identifier to delete" }) }),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);

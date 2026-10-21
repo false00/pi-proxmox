@@ -2,7 +2,7 @@
 
 This document explains how to give `@false00/pi-proxmox` only the Proxmox access it needs.
 
-The package is a full-access toolset: its 142 tools include destructive operations and access-control changes, and the tools do not limit themselves. What Pi can actually do is bounded by the Proxmox permissions of the credentials you configure, so grant only what your workflows need.
+The package is a full-access toolset: its 141 tools include destructive operations and access-control changes, and the tools do not limit themselves. What Pi can actually do is bounded by the Proxmox permissions of the credentials you configure, so grant only what your workflows need.
 
 ## Recommended setup
 
@@ -61,7 +61,7 @@ pveum acl modify /pool/pi-proxmox --roles PVEAuditor --tokens 'pi-proxmox@pve!au
 Node and cluster read tools check other paths:
 
 - `Sys.Audit` on `/nodes/<node>`: node status, services, DNS, time, and node-level firewall reads
-- `Sys.Audit` on `/`: cluster status, cluster config, node config, backup jobs, HA lists, and cluster-level firewall reads
+- `Sys.Audit` on `/`: cluster status, cluster join information, node config, backup jobs, HA status and lists, PCI device lists, and cluster-level firewall reads
 
 To allow those reads without exposing every guest and storage, add `PVEAuditor` on the node, and on `/` without propagation:
 
@@ -101,7 +101,7 @@ pveum acl modify /pool/pi-proxmox --roles PVEVMAdmin,PVEDatastoreUser --tokens '
 
 Notes:
 
-- Pass `pool=pi-proxmox` to `proxmox_vm_create` and `proxmox_vm_clone` so Proxmox checks `VM.Allocate` on the pool and adds the new guest to it. `proxmox_lxc_create` has no `pool` parameter; with pool-scoped grants, create containers with `proxmox_api_call` (`POST /nodes/{node}/lxc` with `pool`).
+- Pass `pool=pi-proxmox` to `proxmox_vm_create`, `proxmox_vm_clone`, and `proxmox_lxc_create` so Proxmox checks `VM.Allocate` on the pool and adds the new guest to it.
 - Guests with network devices also need `SDN.Use` on the bridge or VNet they use (path `/sdn/zones/<zone>/<vnet>`; plain Linux bridges such as `vmbr0` belong to the `localnetwork` zone). The built-in `PVESDNUser` role provides it:
 
   ```bash
@@ -211,10 +211,11 @@ Privileges and paths come from the Permissions section of each endpoint in the o
 | `proxmox_replication_list`, `proxmox_replication_log` | `VM.Audit` (log: or `Sys.Audit` on `/nodes/<node>`) | `/vms/<vmid>` |
 | `proxmox_node_status`, `proxmox_node_services`, `proxmox_node_service_status`, `proxmox_node_dns`, `proxmox_node_time` | `Sys.Audit` | `/nodes/<node>` |
 | `proxmox_node_journal` | `Sys.Syslog` | `/nodes/<node>` |
-| `proxmox_node_config`, `proxmox_cluster_status`, `proxmox_cluster_config`, `proxmox_backup_list`, `proxmox_ha_resources_list`, `proxmox_ha_groups_list` | `Sys.Audit` | `/` |
+| `proxmox_node_config`, `proxmox_cluster_status`, `proxmox_cluster_config`, `proxmox_backup_list`, `proxmox_ha_status`, `proxmox_ha_resources_list`, `proxmox_ha_groups_list` | `Sys.Audit` | `/` |
+| `proxmox_node_hardware` | `Sys.Audit` or `Sys.Modify` for PCI devices (the default); `Sys.Modify` for USB devices | `/` |
 | `proxmox_cluster_options`, `proxmox_cluster_log` | none; full output needs `Sys.Audit` (options) or `Sys.Syslog` (log) | `/` |
 | `proxmox_task_list`, `proxmox_task_status`, `proxmox_task_log` | none for the caller's own tasks; `Sys.Audit` for other tasks | `/nodes/<node>` |
-| `proxmox_node_list`, `proxmox_cluster_resources`, `proxmox_cluster_next_id`, `proxmox_cluster_version`, `proxmox_ha_status`, `proxmox_node_subscription`, `proxmox_node_hardware`, `proxmox_node_network_list`, `proxmox_role_list`, `proxmox_domain_list` | none beyond authentication | — |
+| `proxmox_node_list`, `proxmox_cluster_resources`, `proxmox_cluster_next_id`, `proxmox_cluster_version`, `proxmox_node_subscription`, `proxmox_node_network_list`, `proxmox_role_list`, `proxmox_domain_list` | none beyond authentication | — |
 
 ### Firewall
 
@@ -261,6 +262,7 @@ Change tools: `proxmox_firewall_rule_add`, `proxmox_firewall_rules_delete`, `pro
 | `proxmox_storage_remove_volume` | `Datastore.Allocate` (or `Datastore.AllocateSpace` for backup volumes when you have `VM.Backup` on the guest) | `/storage/<storage>` |
 | `proxmox_storage_detail` | `Datastore.Allocate` | `/storage/<storage>` |
 | `proxmox_storage_create`, `proxmox_storage_delete` | `Datastore.Allocate` | `/storage` |
+| `proxmox_storage_scan` | `Datastore.Allocate` for a scan; listing the scan types (no `type`) needs none | `/storage` |
 | `proxmox_pool_create`, `proxmox_pool_delete` | `Pool.Allocate` | `/pool/<pool>` |
 
 ### Nodes and cluster

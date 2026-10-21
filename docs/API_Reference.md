@@ -53,9 +53,14 @@ Comprehensive index of all Proxmox VE API resource paths. See the linked documen
 | PUT | `/access/acl` | Update ACL |
 | GET | `/access/domains` | List auth domains |
 | GET | `/access/domains/{realm}` | Get domain config |
-| GET | `/access/tfa` | TFA configuration |
-| GET | `/access/password` | Password management |
-| POST | `/access/password` | Change password |
+| GET | `/access/tfa` | List TFA entries |
+| GET | `/access/tfa/{userid}` | List a user's TFA entries |
+| POST | `/access/tfa/{userid}` | Add a TFA entry |
+| DELETE | `/access/tfa/{userid}/{id}` | Remove a TFA entry |
+| GET | `/access/users/{userid}/token` | List a user's API tokens |
+| POST | `/access/users/{userid}/token/{tokenid}` | Create an API token |
+| DELETE | `/access/users/{userid}/token/{tokenid}` | Delete an API token |
+| PUT | `/access/password` | Change password |
 | GET | `/access/permissions` | List user permissions |
 | GET | `/access/openid` | OpenID Connect config |
 
@@ -68,33 +73,30 @@ Comprehensive index of all Proxmox VE API resource paths. See the linked documen
 | GET | `/cluster/options` | Cluster options |
 | PUT | `/cluster/options` | Update options |
 | GET | `/cluster/nextid` | Get next VM ID |
-| GET | `/cluster/config` | Join config |
-| GET | `/cluster/ha/status` | HA status |
+| GET | `/cluster/config/join` | Cluster join information |
+| POST | `/cluster/config/join` | Join this node to a cluster |
+| GET | `/cluster/config/nodes` | Corosync node list |
+| GET | `/cluster/ha/status/current` | HA manager status |
+| GET | `/cluster/ha/status/manager_status` | Full HA manager status, including LRM status |
 | GET | `/cluster/ha/resources` | HA resource list |
 | POST | `/cluster/ha/resources` | Add HA resource |
 | GET | `/cluster/ha/resources/{sid}` | Get HA resource |
 | PUT | `/cluster/ha/resources/{sid}` | Update HA resource |
 | DELETE | `/cluster/ha/resources/{sid}` | Remove HA resource |
-| GET | `/cluster/ha/groups` | HA group list |
-| POST | `/cluster/ha/groups` | Create HA group |
-| GET | `/cluster/ha/groups/{group}` | Get HA group |
-| PUT | `/cluster/ha/groups/{group}` | Update HA group |
-| DELETE | `/cluster/ha/groups/{group}` | Delete HA group |
+| GET | `/cluster/ha/rules` | HA rule list |
+| POST | `/cluster/ha/rules` | Create HA rule |
+| GET | `/cluster/ha/rules/{rule}` | Get HA rule |
+| PUT | `/cluster/ha/rules/{rule}` | Update HA rule |
+| DELETE | `/cluster/ha/rules/{rule}` | Delete HA rule |
+| GET | `/cluster/ha/groups` | HA group list (deprecated in favor of HA rules) |
+| POST | `/cluster/ha/groups` | Create HA group (deprecated) |
+| GET | `/cluster/ha/groups/{group}` | Get HA group (deprecated) |
+| PUT | `/cluster/ha/groups/{group}` | Update HA group (deprecated) |
+| DELETE | `/cluster/ha/groups/{group}` | Delete HA group (deprecated) |
 | GET | `/cluster/ceph/status` | Ceph status |
-| GET | `/cluster/ceph/config` | Ceph config |
-| PUT | `/cluster/ceph/config` | Update Ceph config |
+| GET | `/cluster/ceph/metadata` | Ceph daemon metadata |
 | GET | `/cluster/ceph/flags` | Ceph flags |
-| GET | `/cluster/ceph/mon` | List monitors |
-| POST | `/cluster/ceph/mon` | Add monitor |
-| DELETE | `/cluster/ceph/mon/{monid}` | Remove monitor |
-| GET | `/cluster/ceph/osd` | List OSDs |
-| POST | `/cluster/ceph/osd` | Create OSD |
-| PUT | `/cluster/ceph/osd/{osdid}` | Update OSD |
-| DELETE | `/cluster/ceph/osd/{osdid}` | Remove OSD |
-| GET | `/cluster/ceph/pool` | List pools |
-| POST | `/cluster/ceph/pool` | Create pool |
-| PUT | `/cluster/ceph/pool/{poolname}` | Update pool |
-| DELETE | `/cluster/ceph/pool/{poolname}` | Remove pool |
+| PUT | `/cluster/ceph/flags` | Set Ceph flags |
 | GET | `/cluster/sdn/zones` | SDN zone list |
 | POST | `/cluster/sdn/zones` | Create zone |
 | PUT | `/cluster/sdn/zones/{zone}` | Update zone |
@@ -122,19 +124,19 @@ Comprehensive index of all Proxmox VE API resource paths. See the linked documen
 | PUT | `/cluster/backup/{id}` | Update backup job |
 | DELETE | `/cluster/backup/{id}` | Delete backup job |
 | GET | `/cluster/jobs` | Job list |
-| GET | `/cluster/metrics` | Metrics config |
-| POST | `/cluster/metrics` | Add metrics server |
-| GET | `/cluster/acme` | ACME config |
-| POST | `/cluster/acme` | Setup ACME |
-| GET | `/cluster/notifications` | Notification config |
-| POST | `/cluster/notifications/endpoints` | Add endpoint |
+| GET | `/cluster/metrics/server` | Metrics server list |
+| POST | `/cluster/metrics/server/{id}` | Add metrics server |
+| GET | `/cluster/acme` | ACME index |
+| POST | `/cluster/acme/account` | Register ACME account |
+| POST | `/cluster/acme/plugins` | Add ACME DNS plugin |
+| GET | `/cluster/notifications` | Notification index |
+| POST | `/cluster/notifications/endpoints/smtp` | Add SMTP endpoint (also `sendmail`, `gotify`, `webhook`) |
 | GET | `/cluster/mapping` | Device mapping |
 
 ### `/nodes/{node}`
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/nodes` | List all nodes |
-| POST | `/nodes` | Create node (join) |
 | GET | `/nodes/{node}` | Get node details |
 | GET | `/nodes/{node}/status` | Node status |
 | GET | `/nodes/{node}/config` | Node config |
@@ -144,16 +146,17 @@ Comprehensive index of all Proxmox VE API resource paths. See the linked documen
 | POST | `/nodes/{node}/apt/update` | Refresh package index |
 | GET | `/nodes/{node}/capabilities` | System capabilities |
 | GET | `/nodes/{node}/certificates` | Certificate list |
-| POST | `/nodes/{node}/certificates/{cert}/renew` | Renew certificate |
+| PUT | `/nodes/{node}/certificates/acme/certificate` | Renew ACME certificate |
 | GET | `/nodes/{node}/dns` | DNS config |
 | PUT | `/nodes/{node}/dns` | Update DNS |
 | GET | `/nodes/{node}/time` | Time config |
 | PUT | `/nodes/{node}/time` | Set time |
-| GET | `/nodes/{node}/hardware` | Hardware list |
+| GET | `/nodes/{node}/hardware/pci` | PCI devices |
+| GET | `/nodes/{node}/hardware/usb` | USB devices |
 | GET | `/nodes/{node}/disks` | Disk list |
 | GET | `/nodes/{node}/disks/list` | Block device list |
-| GET | `/nodes/{node}/disks/smart/{disk}` | SMART data |
-| POST | `/nodes/{node}/disks/init` | Initialize disk |
+| GET | `/nodes/{node}/disks/smart` | SMART data (`disk=<device>`) |
+| POST | `/nodes/{node}/disks/initgpt` | Initialize disk with GPT |
 | POST | `/nodes/{node}/disks/zfs` | Create ZFS pool |
 | POST | `/nodes/{node}/disks/lvm` | Create LVM |
 | POST | `/nodes/{node}/disks/directory` | Create directory storage |
@@ -161,7 +164,7 @@ Comprehensive index of all Proxmox VE API resource paths. See the linked documen
 | POST | `/nodes/{node}/network` | Create interface |
 | PUT | `/nodes/{node}/network/{iface}` | Update interface |
 | DELETE | `/nodes/{node}/network/{iface}` | Delete interface |
-| POST | `/nodes/{node}/network/reload` | Apply network changes |
+| PUT | `/nodes/{node}/network` | Apply pending network changes |
 | GET | `/nodes/{node}/services` | Service list |
 | POST | `/nodes/{node}/services/{svc}/start` | Start service |
 | POST | `/nodes/{node}/services/{svc}/stop` | Stop service |
@@ -175,8 +178,7 @@ Comprehensive index of all Proxmox VE API resource paths. See the linked documen
 | GET | `/nodes/{node}/rrddata` | RRD data |
 | GET | `/nodes/{node}/subscription` | Subscription status |
 | POST | `/nodes/{node}/execute` | Execute batched node API requests |
-| POST | `/nodes/{node}/stop` | Stop node |
-| POST | `/nodes/{node}/reboot` | Reboot node |
+| POST | `/nodes/{node}/status` | Reboot or shut down the node (`command=reboot` or `shutdown`) |
 | GET | `/nodes/{node}/netstat` | Network stats |
 | POST | `/nodes/{node}/wakeonlan` | Wake on LAN |
 

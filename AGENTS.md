@@ -75,6 +75,9 @@ Maintain these behavioral guarantees:
 ## Known Proxmox-specific constraints
 
 - There is **no API-based shell exec for LXC containers** in this package.
+- Proxmox has **no hard reset for LXC containers** (only QEMU has `status/reset`); do not emulate one.
+- Node reboot and shutdown go through `POST /nodes/{node}/status` with `command=reboot` or `command=shutdown`; there are no `/reboot` or `/stop` node endpoints.
+- Replication jobs are defined cluster-wide under `/cluster/replication`; the node endpoints only report status, return logs, and `schedule_now`.
 - VM guest execution depends on the **QEMU Guest Agent**.
 - `proxmox_vm_agent_exec` must continue splitting the `command` string on whitespace into an array because the Proxmox endpoint expects `path` plus repeated `arg[]` form values.
 - `/qemu/{vmid}/agent/exec-status` and other read-only agent endpoints must remain **GET** requests.
@@ -105,6 +108,7 @@ Every code change should be backed by tests appropriate to the behavior being to
 Current suites:
 
 - `tests/smoke.test.mjs` — extension import and tool-surface smoke checks without live Proxmox access
+- `tests/endpoints.test.mjs` — offline endpoint conformance: every dedicated tool's requests, and every endpoint named in the docs, checked against `tests/fixtures/pve-api-snapshot.json` (a snapshot of the official API viewer schema), plus regression checks for corrected endpoints
 - `tests/auth.test.mjs` — auth and basic connectivity
 - `tests/pagination.test.mjs` — pagination behavior
 - `tests/vm-agent.test.mjs` — VM guest-agent behavior
@@ -117,6 +121,7 @@ Current suites:
 - `tests/raw-api.test.mjs` — universal raw API coverage against official GET/POST/PUT/DELETE and upload-style endpoints
 - `tests/package.test.mjs` — package metadata and trust-signal structure
 - `scripts/audit-official-api.mjs` — live audit against the official Proxmox API viewer schema
+- `scripts/update-api-snapshot.mjs` — refreshes `tests/fixtures/pve-api-snapshot.json` from the official API viewer (`npm run update:api-snapshot`)
 
 Expectations:
 
@@ -125,6 +130,7 @@ Expectations:
 - User-facing packaging or documentation changes should have at least one structural or metadata check when feasible.
 - Run `npm test` before considering work complete.
 - Run `npm run test:smoke` for a fast non-live sanity check.
+- Run `npm run test:endpoints` after changing any tool's path, method, or parameters, or any doc that names an endpoint. New paths, methods, and parameters must exist in the official API viewer; refresh the snapshot with `npm run update:api-snapshot` when Proxmox publishes API changes, and review the fixture diff.
 - Run `npm run test:mcp` after changing the MCP bridge or the shared tool registration surface.
 - Run `npm run test:security` when dependency or workflow changes affect the shipped security posture.
 - Run `npm run audit:official-api` when changing official-coverage claims or raw API coverage behavior.
@@ -158,16 +164,18 @@ When asked to prepare a release:
 
 1. Run `npm test`
 2. Run `npm run test:smoke`
-3. Run `npm run test:raw-api`
-4. Run `npm run test:package`
-5. Run `npm run test:security`
-6. Run `npm run audit:official-api`
-7. Run `npm pack --dry-run`
-8. Verify `package.json` metadata is current
-9. Verify README and AGENTS reflect the shipped behavior
-10. Check whether the current version is already published before bumping
-11. Only commit, tag, push, or publish with explicit user approval
-12. If the user prefers to finish the release manually, provide the publish/push one-liner instead of trying to keep retrying around browser-auth prompts
+3. Run `npm run test:endpoints`
+4. Run `npm run test:mcp`
+5. Run `npm run test:raw-api`
+6. Run `npm run test:package`
+7. Run `npm run test:security`
+8. Run `npm run audit:official-api`
+9. Run `npm pack --dry-run`
+10. Verify `package.json` metadata is current
+11. Verify README and AGENTS reflect the shipped behavior
+12. Check whether the current version is already published before bumping
+13. Only commit, tag, push, or publish with explicit user approval
+14. If the user prefers to finish the release manually, provide the publish/push one-liner instead of trying to keep retrying around browser-auth prompts
 
 ## Proxmox provisioning guideline
 

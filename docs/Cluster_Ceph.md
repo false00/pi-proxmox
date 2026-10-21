@@ -2,27 +2,35 @@
 
 This document covers the API endpoints for managing integrated Ceph storage clusters within Proxmox VE.
 
-## Base Path
+## Base Paths
 ```
 /cluster/ceph
+/nodes/{node}/ceph
 ```
+
+Cluster-wide status and flags live under `/cluster/ceph`. Configuration, monitors, OSDs, pools, and CRUSH data are managed through a node, under `/nodes/{node}/ceph`.
 
 ## Ceph Status & Overview
 ```
 GET /cluster/ceph/status
 ```
-Returns overall Ceph cluster health, mon status, OSD status, and storage utilization.
+Returns overall Ceph cluster health, monitor status, OSD status, and storage utilization.
+
+```
+GET /cluster/ceph/metadata
+```
+Returns metadata about the Ceph daemons (versions, hosts) in the cluster.
 
 ## Ceph Configuration
 ```
-GET /cluster/ceph/config
+GET /nodes/{node}/ceph/cfg/raw
 ```
-Retrieve the current Ceph configuration.
+Retrieve the Ceph configuration file.
 
 ```
-PUT /cluster/ceph/config
+GET /nodes/{node}/ceph/cfg/db
 ```
-Update Ceph configuration parameters.
+Retrieve the Ceph configuration database.
 
 ## Ceph Flags
 ```
@@ -33,117 +41,114 @@ View current Ceph cluster flags (e.g., `noout`, `norecover`, `pause`).
 ```
 PUT /cluster/ceph/flags
 ```
-Set or unset Ceph cluster flags.
+Set or unset several Ceph cluster flags at once.
+
+```
+GET /cluster/ceph/flags/{flag}
+PUT /cluster/ceph/flags/{flag}
+```
+Read, set, or clear a single flag.
 
 ## Monitor (MON) Management
 ```
-GET /cluster/ceph/mon
+GET /nodes/{node}/ceph/mon
 ```
-List all Ceph monitor nodes.
+List all Ceph monitors.
 
 ```
-POST /cluster/ceph/mon
+POST /nodes/{node}/ceph/mon/{monid}
 ```
-Create a new Ceph monitor on a node.
+Create a Ceph monitor on the node; the first monitor also gets a manager.
 
-**Parameters:** `node` (string), `monaddr` (IP address, optional)
+**Parameters:** `monid` (string, optional; defaults to the node name), `mon-address` (IP addresses in Ceph's public network, optional; overrides autodetection)
 
 ```
-DELETE /cluster/ceph/mon/{mon-id}
+DELETE /nodes/{node}/ceph/mon/{monid}
 ```
-Remove a Ceph monitor.
+Remove a Ceph monitor. Proxmox refuses to remove the last monitor.
 
 ## OSD Management
 ```
-GET /cluster/ceph/osd
+GET /nodes/{node}/ceph/osd
 ```
-List all OSDs with their status, weight, and utilization.
+List the OSD tree with status, weight, and utilization.
 
 ```
-POST /cluster/ceph/osd
+POST /nodes/{node}/ceph/osd
 ```
-Create a new OSD.
+Create a new OSD on the node. Root only.
 
 **Parameters:**
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `dev` | string | Device path (e.g., `/dev/sdb`) |
-| `node` | string | Node to create OSD on |
+| `dev` | string | Block device path (e.g., `/dev/sdb`) |
 | `wal_dev` | string | WAL device (optional) |
 | `db_dev` | string | DB device (optional) |
+| `crush-device-class` | string | CRUSH device class (optional) |
+| `encrypted` | boolean | Enable encryption (optional) |
 
 ```
-PUT /cluster/ceph/osd/{osdid}
+DELETE /nodes/{node}/ceph/osd/{osdid}
 ```
-Modify OSD parameters (e.g., `crush_weight`, `reweight`).
-
-```
-DELETE /cluster/ceph/osd/{osdid}
-```
-Remove an OSD from the cluster.
-
-### OSD Flags
-```
-GET /cluster/ceph/osd/{osdid}/flags
-```
-View flags set on a specific OSD.
-
-```
-PUT /cluster/ceph/osd/{osdid}/flags
-```
-Set flags on a specific OSD (e.g., `noout`, `noscrub`).
+Destroy an OSD. Root only. `cleanup=1` also removes the underlying logical volumes and leftover journal partitions; without it they are left intact for inspection.
 
 ### OSD Scrub
 ```
-PUT /cluster/ceph/osd/{osdid}/scrub
+POST /nodes/{node}/ceph/osd/{osdid}/scrub
 ```
-Trigger manual scrub on an OSD.
+Trigger a scrub on an OSD (`deep=1` for a deep scrub).
 
 ### OSD In/Out
 ```
-POST /cluster/ceph/osd/{osdid}/in
-POST /cluster/ceph/osd/{osdid}/out
+POST /nodes/{node}/ceph/osd/{osdid}/in
+POST /nodes/{node}/ceph/osd/{osdid}/out
 ```
 Mark an OSD in or out of the cluster.
 
-## Pool (RBD) Management
+## Pool Management
 ```
-GET /cluster/ceph/pool
+GET /nodes/{node}/ceph/pool
 ```
-List all Ceph pools with their PG counts, replication size, and usage.
+List all Ceph pools with their settings and usage.
 
 ```
-POST /cluster/ceph/pool
+POST /nodes/{node}/ceph/pool
 ```
-Create a new RBD pool.
+Create a new pool.
 
 **Parameters:**
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `poolname` | string | Pool name |
+| `name` | string | Pool name |
 | `pg_num` | integer | Placement group count |
-| `size` | integer | Replication factor |
-| `crush_ruleset` | integer | CRUSH ruleset ID |
+| `size` | integer | Number of replicas |
+| `min_size` | integer | Minimum replicas for I/O |
+| `crush_rule` | string | CRUSH rule name |
+| `add_storages` | boolean | Configure VM and CT storage using the new pool |
 
 ```
-PUT /cluster/ceph/pool/{poolname}
+GET /nodes/{node}/ceph/pool/{name}
+PUT /nodes/{node}/ceph/pool/{name}
 ```
-Modify pool parameters.
+Read or change pool settings.
 
 ```
-DELETE /cluster/ceph/pool/{poolname}
+DELETE /nodes/{node}/ceph/pool/{name}
 ```
 Remove a pool.
 
-## CRUSH Rules
+## CRUSH Map and Rules
 ```
-GET /cluster/ceph/crush
+GET /nodes/{node}/ceph/crush
+GET /nodes/{node}/ceph/rules
 ```
-View CRUSH map rules and hierarchy.
+View the CRUSH map and the CRUSH rules.
 
 ## Permissions
-- `Sys.Modify` on `/` — Required for Ceph management operations
-- `Sys.Audit` on `/` — Required for reading Ceph status and configuration
+- `Sys.Audit` or `Datastore.Audit` on `/` — reading Ceph status, configuration, monitors, OSDs, pools, and CRUSH data
+- `Sys.Audit` on `/` — reading Ceph flags
+- `Sys.Modify` on `/` — monitor, pool, flag, and OSD in/out/scrub changes
+- Root only — creating and destroying OSDs
 
 ## Common Workflows
 
@@ -153,16 +158,16 @@ curl -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   https://node:8006/api2/json/cluster/ceph/status
 ```
 
-### Create a New OSD
+### Create a New OSD (root only)
 ```bash
 curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
-  -d "dev=/dev/sdb&node=pve1" \
-  https://node:8006/api2/json/cluster/ceph/osd
+  -d "dev=/dev/sdb" \
+  https://node:8006/api2/json/nodes/pve1/ceph/osd
 ```
 
 ### Create a Pool
 ```bash
 curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
-  -d "poolname=ssd-pool&pg_num=128&size=3" \
-  https://node:8006/api2/json/cluster/ceph/pool
+  -d "name=ssd-pool&pg_num=128&size=3" \
+  https://node:8006/api2/json/nodes/pve1/ceph/pool
 ```

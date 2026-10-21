@@ -1,5 +1,5 @@
 import { Type } from "typebox";
-import { throwIfAborted, emitProgress, safeExecute, execOnNode, normalizeExecuteCommands } from "../tool-runtime.js";
+import { throwIfAborted, emitProgress, safeExecute, execOnNode, normalizeExecuteCommands, validationError } from "../tool-runtime.js";
 
 export function nodeList(client) {
   return {
@@ -67,14 +67,15 @@ export function nodeJournal(client) {
   return {
     name: "proxmox_node_journal",
     label: "Read Node Journal",
-    description: "Reads systemd journal entries from a Proxmox node, filtered by time range and optional service.",
+    description: "Reads systemd journal entries from a Proxmox node. Filter by time range (since/until as Unix epoch seconds), by journal cursor, or limit the result to the last N entries.",
     parameters: Type.Object({
       node: Type.String({ description: "Proxmox node name" }),
-      since: Type.Optional(Type.String({ description: "Time range (e.g., '-1h', '-30m', '-1d')" })),
-      start: Type.Optional(Type.Integer({ description: "Start timestamp (overrides since)" })),
-      end: Type.Optional(Type.Integer({ description: "End timestamp" })),
-      service: Type.Optional(Type.String({ description: "Filter by service name" })),
-      limit: Type.Optional(Type.Integer({ description: "Max log entries (default: 50)" })),
+      since: Type.Optional(Type.Integer({ description: "Only entries since this Unix epoch time in seconds (conflicts with startcursor)" })),
+      until: Type.Optional(Type.Integer({ description: "Only entries until this Unix epoch time in seconds (conflicts with endcursor)" })),
+      lastentries: Type.Optional(Type.Integer({ description: "Return only the last N entries (conflicts with a time range)" })),
+      startcursor: Type.Optional(Type.String({ description: "Start after this journal cursor (conflicts with since)" })),
+      endcursor: Type.Optional(Type.String({ description: "End before this journal cursor (conflicts with until)" })),
+      service: Type.Optional(Type.String({ description: "Only entries whose syslog identifier matches this glob, e.g. 'pveproxy' or 'pve*'. Only recent Proxmox VE releases accept this filter; older ones reject it." })),
     }),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
@@ -165,7 +166,7 @@ export function nodeConfig(client) {
   return {
     name: "proxmox_node_config",
     label: "Get Node Configuration",
-    description: "Gets the configuration file for a Proxmox node.",
+    description: "Gets the node configuration options (for example description, ACME domains, and Wake-on-LAN settings).",
     parameters: Type.Object({ node: Type.String({ description: "Proxmox node name" }) }),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
@@ -178,12 +179,12 @@ export function nodeReboot(client) {
   return {
     name: "proxmox_node_reboot",
     label: "Reboot Node",
-    description: "Reboots a Proxmox node. Use with caution.",
+    description: "Reboots a Proxmox node through POST /nodes/{node}/status with command=reboot. Guests running on the node are affected. Use with caution.",
     parameters: Type.Object({ node: Type.String({ description: "Proxmox node name" }) }),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
       emitProgress(onUpdate, `Rebooting node ${params.node}...`);
-      return await client.post(`/nodes/${params.node}/reboot`);
+      return await client.post(`/nodes/${params.node}/status`, { command: "reboot" });
     }),
   };
 }
@@ -191,13 +192,13 @@ export function nodeReboot(client) {
 export function nodeStop(client) {
   return {
     name: "proxmox_node_stop",
-    label: "Stop Node",
-    description: "Stops (powers off) a Proxmox node. Use with extreme caution.",
+    label: "Shut Down Node",
+    description: "Shuts down (powers off) a Proxmox node through POST /nodes/{node}/status with command=shutdown. The node stays off until it is powered on out of band, for example through IPMI or Wake-on-LAN. Use with extreme caution.",
     parameters: Type.Object({ node: Type.String({ description: "Proxmox node name" }) }),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
-      emitProgress(onUpdate, `Stopping node ${params.node}...`);
-      return await client.post(`/nodes/${params.node}/stop`);
+      emitProgress(onUpdate, `Shutting down node ${params.node}...`);
+      return await client.post(`/nodes/${params.node}/status`, { command: "shutdown" });
     }),
   };
 }
@@ -229,15 +230,24 @@ export function nodeSubscription(client) {
   };
 }
 
+const HARDWARE_TYPES = ["pci", "usb"];
+
 export function nodeHardware(client) {
   return {
     name: "proxmox_node_hardware",
     label: "List Node Hardware",
-    description: "Lists hardware devices (CPU, memory, PCI, USB) on a Proxmox node.",
-    parameters: Type.Object({ node: Type.String({ description: "Proxmox node name" }) }),
+    description: "Lists the PCI (default) or USB devices of a Proxmox node, for example to pick a device for passthrough.",
+    parameters: Type.Object({
+      node: Type.String({ description: "Proxmox node name" }),
+      type: Type.Optional(Type.String({ description: "Device class: 'pci' (default) or 'usb'" })),
+    }),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
-      return await client.get(`/nodes/${params.node}/hardware`);
+      const type = params.type || "pci";
+      if (!HARDWARE_TYPES.includes(type)) {
+        throw validationError(`Unsupported hardware type '${type}'`, "Use 'pci' or 'usb'.");
+      }
+      return await client.get(`/nodes/${params.node}/hardware/${type}`);
     }),
   };
 }
@@ -258,12 +268,12 @@ export function nodeNetworkList(client) {
 export function nodeServiceStatus(client) {
   return {
     name: "proxmox_node_service_status",
-    label: "Get Node Service Details",
-    description: "Gets detailed status for a specific service on a Proxmox node.",
+    label: "Get Node Service State",
+    description: "Gets the systemd state of a specific service on a Proxmox node (active state, sub-state, and description).",
     parameters: Type.Object({ node: Type.String({ description: "Proxmox node name" }), service: Type.String({ description: "Service name (e.g., 'pveproxy', 'pvestatd')" }) }),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
-      return await client.get(`/nodes/${params.node}/services/${params.service}`);
+      return await client.get(`/nodes/${params.node}/services/${params.service}/state`);
     }),
   };
 }

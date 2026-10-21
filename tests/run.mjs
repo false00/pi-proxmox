@@ -1,4 +1,5 @@
 import { run as smoke } from "./smoke.test.mjs";
+import { run as endpoints } from "./endpoints.test.mjs";
 import { run as auth } from "./auth.test.mjs";
 import { run as pagination } from "./pagination.test.mjs";
 import { run as vmAgent } from "./vm-agent.test.mjs";
@@ -14,6 +15,7 @@ import { run as pkg } from "./package.test.mjs";
 let totalFailed = 0;
 
 totalFailed += await smoke();
+totalFailed += await endpoints();
 totalFailed += await auth();
 totalFailed += await pagination();
 totalFailed += await vmAgent();

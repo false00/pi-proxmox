@@ -98,22 +98,22 @@ export function lxcCreate(client) {
       cores: Type.Optional(Type.Integer({ description: "CPU cores (default: 1)" })),
       net0: Type.Optional(Type.String({ description: "Network, e.g. 'name=eth0,bridge=vmbr0,ip=dhcp'" })),
       password: Type.Optional(Type.String({ description: "Root password" })),
-      ssh_public_keys: Type.Optional(Type.String({ description: "SSH public keys" })),
+      ssh_public_keys: Type.Optional(Type.String({ description: "SSH public keys for root, one per line (OpenSSH format); sent as the API's ssh-public-keys parameter" })),
       unprivileged: Type.Optional(Type.Integer({ description: "Unprivileged container: 1 or 0" })),
       start: Type.Optional(Type.Integer({ description: "Start after creation: 1 or 0" })),
       features: Type.Optional(Type.String({ description: "Features: 'nesting=1', 'fuse=1', etc." })),
+      pool: Type.Optional(Type.String({ description: "Resource pool to add the container to (lets a pool-scoped VM.Allocate grant create it)" })),
       tags: Type.Optional(Type.String({ description: "Comma-separated tags" })),
     }),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
       emitProgress(onUpdate, `Creating container ${params.vmid} (${params.hostname})...`);
-      const body = { ...params };
-      delete body.node;
-      if (body.ssh_public_keys) body.ssh_public_keys = encodeURIComponent(body.ssh_public_keys);
+      const { node, ssh_public_keys: sshPublicKeys, ...body } = params;
+      if (sshPublicKeys) body["ssh-public-keys"] = sshPublicKeys;
       for (const key of Object.keys(body)) {
         if (body[key] === "" || body[key] === undefined || body[key] === null) delete body[key];
       }
-      return await client.post(`/nodes/${params.node}/lxc`, body);
+      return await client.post(`/nodes/${node}/lxc`, body);
     }),
   };
 }
@@ -121,8 +121,8 @@ export function lxcCreate(client) {
 export function lxcDelete(client) {
   return {
     name: "proxmox_lxc_delete", label: "Delete Container",
-    description: "Deletes an LXC container. Optionally purges from backup jobs.",
-    parameters: Type.Object({ node: Type.String({ description: "Proxmox node name" }), vmid: Type.Integer({ description: "Container ID to delete" }), purge: Type.Optional(Type.Integer({ description: "Also remove from backup jobs: 1 or 0" })) }),
+    description: "Deletes an LXC container. purge=1 also removes it from related configuration such as backup jobs, replication jobs, and HA.",
+    parameters: Type.Object({ node: Type.String({ description: "Proxmox node name" }), vmid: Type.Integer({ description: "Container ID to delete" }), purge: Type.Optional(Type.Integer({ description: "Also remove it from related configuration (backup jobs, replication jobs, HA): 1 or 0" })) }),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
       emitProgress(onUpdate, `Deleting container ${params.vmid}...`);
@@ -140,19 +140,6 @@ export function lxcSnapshot(client) {
       throwIfAborted(signal);
       emitProgress(onUpdate, `Creating snapshot '${params.snapname}' for container ${params.vmid}...`);
       return await client.post(`/nodes/${params.node}/lxc/${params.vmid}/snapshot`, params);
-    }),
-  };
-}
-
-export function lxcReset(client) {
-  return {
-    name: "proxmox_lxc_reset", label: "Reset Container",
-    description: "Resets a running LXC container (hard reset).",
-    parameters: Type.Object({ node: Type.String({ description: "Proxmox node name" }), vmid: Type.Integer({ description: "Container ID" }) }),
-    execute: safeExecute(async (params, signal, onUpdate) => {
-      throwIfAborted(signal);
-      emitProgress(onUpdate, `Resetting container ${params.vmid}...`);
-      return await client.post(`/nodes/${params.node}/lxc/${params.vmid}/status/reset`);
     }),
   };
 }
@@ -242,11 +229,11 @@ export function lxcResize(client) {
   return {
     name: "proxmox_lxc_resize", label: "Resize Container Mountpoint",
     description: "Resizes a mount point on an LXC container.",
-    parameters: Type.Object({ node: Type.String({ description: "Proxmox node name" }), vmid: Type.Integer({ description: "Container ID" }), mp: Type.String({ description: "Mount point ID (e.g., 'mp0', 'rootfs')" }), size: Type.String({ description: "New size (e.g., '+5G', '16G')" }) }),
+    parameters: Type.Object({ node: Type.String({ description: "Proxmox node name" }), vmid: Type.Integer({ description: "Container ID" }), mp: Type.String({ description: "Mount point to resize: 'rootfs' or 'mp0'...'mp255' (sent as the API's disk parameter)" }), size: Type.String({ description: "New size (e.g., '+5G', '16G'); a leading '+' grows by that amount, shrinking is not supported" }) }),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
       emitProgress(onUpdate, `Resizing ${params.mp} for container ${params.vmid}...`);
-      return await client.put(`/nodes/${params.node}/lxc/${params.vmid}/resize`, params);
+      return await client.put(`/nodes/${params.node}/lxc/${params.vmid}/resize`, { disk: params.mp, size: params.size });
     }),
   };
 }
@@ -319,12 +306,12 @@ export function lxcSnapshotDelete(client) {
 export function lxcMigrate(client) {
   return {
     name: "proxmox_lxc_migrate", label: "Migrate Container",
-    description: "Migrates an LXC container to another node in the cluster.",
-    parameters: Type.Object({ node: Type.String({ description: "Source Proxmox node" }), vmid: Type.Integer({ description: "Container ID" }), target: Type.String({ description: "Target node name" }), online: Type.Optional(Type.Integer({ description: "Live migration: 1 or 0" })), restart: Type.Optional(Type.Integer({ description: "Restart after migration: 1 or 0" })), force: Type.Optional(Type.Integer({ description: "Force migration: 1 or 0" })) }),
+    description: "Migrates an LXC container to another node in the cluster. Proxmox cannot live-migrate running containers; for a running container use restart=1 (restart migration: shut down, move, start on the target).",
+    parameters: Type.Object({ node: Type.String({ description: "Source Proxmox node" }), vmid: Type.Integer({ description: "Container ID" }), target: Type.String({ description: "Target node name" }), online: Type.Optional(Type.Integer({ description: "Live migration: 1 or 0" })), restart: Type.Optional(Type.Integer({ description: "Restart migration (shut down, migrate, start again): 1 or 0" })) }),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
       emitProgress(onUpdate, `Migrating container ${params.vmid} to ${params.target}...`);
-      return await client.post(`/nodes/${params.node}/lxc/${params.vmid}/migrate`, params);
+      return await client.post(`/nodes/${params.node}/lxc/${params.vmid}/migrate`, { target: params.target, online: params.online, restart: params.restart });
     }),
   };
 }

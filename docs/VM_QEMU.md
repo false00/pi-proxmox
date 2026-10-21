@@ -15,7 +15,7 @@ GET /nodes/{node}/qemu
 ```
 List all VMs on a node.
 
-**Returns:** Array with `vmid`, `name`, `status`, `cpu`, `mem`, `disk`, `uptime`, `cgroup-mode`, `pid`, `template`.
+**Returns:** Array with `vmid`, `name`, `status`, `cpu`, `cpus`, `mem`, `maxmem`, `maxdisk`, `uptime`, `pid`, `tags`, `template`, `lock`, and I/O counters.
 
 ### VM Status
 ```
@@ -23,10 +23,7 @@ GET /nodes/{node}/qemu/{vmid}/status/current
 ```
 Get real-time VM status including CPU usage, memory ballooning, disk I/O, network throughput, and running state.
 
-```
-GET /nodes/{node}/qemu/{vmid}/status
-```
-Alias for `status/current`.
+`GET /nodes/{node}/qemu/{vmid}/status` itself only lists the status sub-endpoints.
 
 ### VM Configuration
 ```
@@ -79,14 +76,15 @@ Control VM power state. `shutdown` sends ACPI signal (graceful); `stop` is hard 
 ### Update VM Configuration
 ```
 PUT /nodes/{node}/qemu/{vmid}/config
+POST /nodes/{node}/qemu/{vmid}/config
 ```
-Modify VM configuration. All creation parameters can be updated.
+Modify VM configuration. `PUT` is synchronous; Proxmox recommends the asynchronous `POST` (which returns a task) for changes that hotplug devices or allocate storage. Pool membership is not a config option; change it through `/pools`.
 
 ### Delete VM
 ```
 DELETE /nodes/{node}/qemu/{vmid}
 ```
-Remove a VM. **Parameters:** `purge` (boolean) — also remove from backup jobs; `destroy-unreferenced-disks` (boolean) — remove disks not referenced in config.
+Remove a VM. **Parameters:** `purge` (boolean) — also remove it from related configuration such as backup jobs, replication jobs, and HA; `destroy-unreferenced-disks` (boolean) — remove disks not referenced in config.
 
 ### Migrate VM
 ```
@@ -94,12 +92,12 @@ POST /nodes/{node}/qemu/{vmid}/migrate
 ```
 Migrate VM to another node.
 
-**Parameters:** `target` (string), `online` (boolean, live migration), `with-local-disks` (boolean), `force` (boolean).
+**Parameters:** `target` (string), `online` (boolean, live migration), `with-local-disks` (boolean), `force` (boolean, allow VMs that use local devices; root only).
 
 ```
-POST /nodes/{node}/qemu/{vmid}/migrateall
+POST /nodes/{node}/migrateall
 ```
-Migrate all VMs from a node.
+Migrate all guests from a node to another node.
 
 ## Snapshots
 
@@ -162,30 +160,38 @@ PUT /nodes/{node}/qemu/{vmid}/resize
 Resize a disk. **Parameters:** `disk` (string), `size` (string, e.g., `+10G`).
 
 ## QEMU Guest Agent
+Read-only queries use `GET`:
 ```
+GET /nodes/{node}/qemu/{vmid}/agent/info
+GET /nodes/{node}/qemu/{vmid}/agent/get-fsinfo
+GET /nodes/{node}/qemu/{vmid}/agent/get-host-name
+GET /nodes/{node}/qemu/{vmid}/agent/get-memory-block-info
+GET /nodes/{node}/qemu/{vmid}/agent/get-memory-blocks
+GET /nodes/{node}/qemu/{vmid}/agent/get-osinfo
+GET /nodes/{node}/qemu/{vmid}/agent/get-time
+GET /nodes/{node}/qemu/{vmid}/agent/get-timezone
+GET /nodes/{node}/qemu/{vmid}/agent/get-users
+GET /nodes/{node}/qemu/{vmid}/agent/get-vcpus
+GET /nodes/{node}/qemu/{vmid}/agent/network-get-interfaces
+GET /nodes/{node}/qemu/{vmid}/agent/exec-status
+GET /nodes/{node}/qemu/{vmid}/agent/file-read
+```
+Commands that act on the guest use `POST`:
+```
+POST /nodes/{node}/qemu/{vmid}/agent/ping
 POST /nodes/{node}/qemu/{vmid}/agent/exec
-POST /nodes/{node}/qemu/{vmid}/agent/exec-status
-POST /nodes/{node}/qemu/{vmid}/agent/file-read
 POST /nodes/{node}/qemu/{vmid}/agent/file-write
+POST /nodes/{node}/qemu/{vmid}/agent/set-user-password
 POST /nodes/{node}/qemu/{vmid}/agent/fsfreeze-freeze
 POST /nodes/{node}/qemu/{vmid}/agent/fsfreeze-status
 POST /nodes/{node}/qemu/{vmid}/agent/fsfreeze-thaw
-POST /nodes/{node}/qemu/{vmid}/agent/get-fsinfo
-POST /nodes/{node}/qemu/{vmid}/agent/get-host-name
-POST /nodes/{node}/qemu/{vmid}/agent/get-network-interfaces
-POST /nodes/{node}/qemu/{vmid}/agent/get-osinfo
-POST /nodes/{node}/qemu/{vmid}/agent/get-time
-POST /nodes/{node}/qemu/{vmid}/agent/get-users
-POST /nodes/{node}/qemu/{vmid}/agent/get-vcpus
-POST /nodes/{node}/qemu/{vmid}/agent/info
-POST /nodes/{node}/qemu/{vmid}/agent/ping
-POST /nodes/{node}/qemu/{vmid}/agent/set-user-password
+POST /nodes/{node}/qemu/{vmid}/agent/fstrim
 POST /nodes/{node}/qemu/{vmid}/agent/shutdown
-POST /nodes/{node}/qemu/{vmid}/agent/suspend
 POST /nodes/{node}/qemu/{vmid}/agent/suspend-disk
+POST /nodes/{node}/qemu/{vmid}/agent/suspend-hybrid
 POST /nodes/{node}/qemu/{vmid}/agent/suspend-ram
 ```
-Execute QEMU Guest Agent commands (requires `agent: 1` in VM config).
+Execute QEMU Guest Agent commands (requires `agent: 1` in VM config and the agent running in the guest).
 
 ## VM Firewall
 ```
@@ -202,16 +208,21 @@ GET /nodes/{node}/qemu/{vmid}/firewall/refs
 ```
 Per-VM firewall rules, aliases, and options. See [Cluster_Firewall](Cluster_Firewall.md) for parameter details.
 
-## VNC Console
+## Console
 ```
-GET /nodes/{node}/qemu/{vmid}/vncproxy
+POST /nodes/{node}/qemu/{vmid}/vncproxy
 ```
-Get VNC proxy ticket for console access.
+Create a VNC proxy ticket for console access.
+
+```
+POST /nodes/{node}/qemu/{vmid}/termproxy
+```
+Create a proxy for one of the VM's serial consoles (`serial`).
 
 ```
 POST /nodes/{node}/qemu/{vmid}/spiceproxy
 ```
-Get SPICE proxy ticket.
+Create a SPICE proxy ticket.
 
 ## Monitoring
 ```
@@ -229,12 +240,17 @@ View pending configuration changes (applied on next reboot).
 | Action | Required Permission |
 |--------|-------------------|
 | List, status, config | `VM.Audit` on `/vms/{vmid}` |
-| Create, modify, delete | `VM.Config` on `/vms/{vmid}` |
+| Create | `VM.Allocate` on `/vms/{vmid}` or on the pool given as `pool`; `Datastore.AllocateSpace` on each storage used; `SDN.Use` on each bridge used |
+| Modify configuration | The `VM.Config.*` privilege for each setting changed (`VM.Config.CPU`, `VM.Config.Memory`, `VM.Config.Network`, `VM.Config.Disk`, `VM.Config.CDROM`, `VM.Config.Cloudinit`, `VM.Config.HWType`, `VM.Config.Options`) on `/vms/{vmid}` |
+| Delete, convert to template | `VM.Allocate` on `/vms/{vmid}` |
 | Power operations | `VM.PowerMgmt` on `/vms/{vmid}` |
-| Clone, migrate, template | `VM.Config` + `VM.Clone` |
-| Snapshot management | `VM.Snapshot` on `/vms/{vmid}` |
-| Firewall | `VM.Config` on `/vms/{vmid}` |
-| QEMU Agent | `VM.Config` on `/vms/{vmid}` |
+| Clone | `VM.Clone` on the source `/vms/{vmid}`; `VM.Allocate` on `/vms/{newid}` or the target pool |
+| Migrate | `VM.Migrate` on `/vms/{vmid}` (`force` is root only) |
+| Resize, move disks | `VM.Config.Disk` on `/vms/{vmid}` (moving also needs `Datastore.AllocateSpace` on the target storage) |
+| Snapshot management | `VM.Snapshot` on `/vms/{vmid}` (rollback: or `VM.Snapshot.Rollback`) |
+| Firewall | `VM.Audit` (read) or `VM.Config.Network` (change) on `/vms/{vmid}` |
+| QEMU Agent | `VM.GuestAgent.Audit` for informational queries, `VM.GuestAgent.FileRead` / `VM.GuestAgent.FileWrite` for file access, `VM.GuestAgent.FileSystemMgmt` for freeze/thaw/trim, `VM.PowerMgmt` for agent shutdown and suspend, and `VM.GuestAgent.Unrestricted` for `exec`, `exec-status`, and `set-user-password` (it also satisfies the others) |
+| Console | `VM.Console` on `/vms/{vmid}` |
 
 ## Common Workflows
 
