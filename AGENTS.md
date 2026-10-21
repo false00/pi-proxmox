@@ -134,6 +134,7 @@ Expectations:
 Treat this package as infrastructure automation software, not a toy integration.
 
 - Do not weaken auth handling for convenience.
+- Recommend least privilege in docs, defaults, and runtime hints: a dedicated non-root user, a privilege-separated API token, and roles on the narrowest path that works. Never suggest `root@pam` tokens, disabling privilege separation, or root password fallback as the default fix.
 - Do not log secrets in code, tests, or documentation.
 - Prefer explicit errors over silent fallback unless a documented fallback already exists.
 - Keep destructive operations obvious in tool naming and docs.

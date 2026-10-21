@@ -118,31 +118,31 @@ Returns cluster join configuration.
 
 ### List All Nodes with Status
 ```bash
-curl -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   https://node:8006/api2/json/nodes
 ```
 
 ### Get Cluster Quorum Status
 ```bash
-curl -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   https://node:8006/api2/json/cluster/status
 ```
 
 ### Check Proxmox Version
 ```bash
-curl -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   https://node:8006/api2/json/version
 ```
 
 ### Get Next Available VM ID
 ```bash
-curl -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   https://node:8006/api2/json/cluster/nextid
 ```
 
 ### Create a Resource Pool
 ```bash
-curl -X POST -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -d "poolid=production&comment=Production VMs" \
   https://node:8006/api2/json/pools
 ```

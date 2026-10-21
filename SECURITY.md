@@ -58,8 +58,10 @@ Security-sensitive areas include:
 
 For production use:
 
-- create a dedicated Proxmox automation token
-- disable privilege separation only when the tool coverage you need requires it
+- use a dedicated, non-root Proxmox user and an API token with privilege separation enabled
+- grant roles to both the user and the token on the narrowest path that works (for example a resource pool), starting read-only; see [docs/PERMISSIONS.md](docs/PERMISSIONS.md)
+- do not use `root@pam` tokens or credentials for everyday work, and leave the password fallback unset so root-only operations fail closed
+- keep access-control privileges (users, tokens, ACLs, roles) off the token Pi uses
 - scope and review access deliberately
 - test against a non-critical node or lab environment before wide rollout
 - review Pi prompts and active tools before approving destructive work

@@ -205,35 +205,35 @@ View pending configuration changes (applied on next restart).
 
 ### Create and Start a Container
 ```bash
-curl -X POST -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -d "vmid=300&hostname=web-ct&ostemplate=local:vztmpl/debian-12-standard_12.0-1_amd64.tar.gz&storage=local-lvm&rootfs=local-lvm:8&memory=2048&swap=512&cores=2&net0=name=eth0,bridge=vmbr0,ip=dhcp&password=secret123&start=1" \
   https://node:8006/api2/json/nodes/pve1/lxc
 ```
 
 ### Take a Snapshot
 ```bash
-curl -X POST -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -d "snapname=pre-upgrade&description=Before package upgrade" \
   https://node:8006/api2/json/nodes/pve1/lxc/300/snapshot
 ```
 
 ### Migrate Container
 ```bash
-curl -X POST -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -d "target=pve2&restart=1" \
   https://node:8006/api2/json/nodes/pve1/lxc/300/migrate
 ```
 
 ### Resize Container Rootfs
 ```bash
-curl -X PUT -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X PUT -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -d "mp=mp0&size=+10G" \
   https://node:8006/api2/json/nodes/pve1/lxc/300/resize
 ```
 
 ### Enable Nesting (Docker Inside LXC)
 ```bash
-curl -X PUT -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X PUT -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -d "features=nesting=1" \
   https://node:8006/api2/json/nodes/pve1/lxc/300/config
 ```

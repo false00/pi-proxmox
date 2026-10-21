@@ -30,7 +30,7 @@ export function clusterResources(client) {
       if (!hasVms && resources.length > 0) {
         const perms = await client._probePermissions();
         if (!perms.canListVMs) {
-          const notes = ["⚠ No VMs or containers visible — your API token lacks permissions. In the Proxmox Web UI, go to Datacenter > Permissions > API Tokens and uncheck \"Privilege Separation\" for your token."];
+          const notes = ["⚠ No VMs or containers visible — the API token may lack VM.Audit on those guests. Grant a role such as PVEAuditor to both the token and its user on the narrowest path that covers them (for example /pool/<pool>); a privilege-separated token gets the intersection of both. See docs/PERMISSIONS.md. Do not switch to a root or full-privilege token."];
           return { _data: resources, _notes: notes };
         }
       }
@@ -150,7 +150,7 @@ export function checkPermissions(client) {
       await probe("list storage", () => client.get("/storage"));
       await probe("list backups", () => client.get("/cluster/backup"));
       const denied = tests.filter(t => t.result === "denied");
-      const edges = denied.map(t => `⚠ "${t.test}" denied — ${t.detail}. Fix: In Proxmox Web UI, go to Datacenter > Permissions > API Tokens and uncheck "Privilege Separation" for your token.`);
+      const edges = denied.map(t => `⚠ "${t.test}" denied — ${t.detail}. If you need it, grant the missing privilege to both the token and its user on the narrowest path that covers it (a privilege-separated token gets the intersection of both); see docs/PERMISSIONS.md. Denials outside the scope you granted are expected.`);
       return { _data: { permissions: tests, summary: tests.filter(t => t.result === "ok").length + "/" + tests.length + " probes passed" }, _notes: edges };
     }),
   };

@@ -20,7 +20,7 @@ The repository's live integration tests and runtime-behavior tests were executed
 - API token authentication
 - Password/ticket fallback for `/nodes/{node}/execute` behavior
 
-In the verified environment, normal API requests worked with the configured API token, but `/nodes/{node}/execute` still required the documented password/ticket retry path.
+In the verified environment, normal API requests worked with the configured API token, but `/nodes/{node}/execute` still required the documented password/ticket retry path. The official API viewer lists that endpoint as root only, so the retry path needs `root@pam` credentials; the recommended least-privilege setup in [PERMISSIONS.md](PERMISSIONS.md) leaves it unset.
 
 ## Coverage expectations
 

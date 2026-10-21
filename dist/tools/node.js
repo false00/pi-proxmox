@@ -114,7 +114,7 @@ export function nodeExecute(client) {
   return {
     name: "proxmox_node_execute",
     label: "Execute API Commands on Node",
-    description: "Executes a batch of Proxmox API calls on a node via the real /nodes/{node}/execute endpoint. It batches relative node API requests like 'version', 'status', 'qemu', or 'tasks'; it does not run arbitrary shell commands. Accepts a JSON array of {method, path, args?} objects, and also accepts legacy body? as an alias for args. May require PROXMOX_PASSWORD ticket-auth fallback if API-token auth is rejected for /execute.",
+    description: "Executes a batch of Proxmox API calls on a node via the real /nodes/{node}/execute endpoint. It batches relative node API requests like 'version', 'status', 'qemu', or 'tasks'; it does not run arbitrary shell commands. Accepts a JSON array of {method, path, args?} objects, and also accepts legacy body? as an alias for args. The endpoint is root-only in Proxmox and rejects API tokens, so this tool only succeeds through the optional, discouraged root@pam password fallback (PROXMOX_USERNAME/PROXMOX_PASSWORD); otherwise it fails closed. Prefer dedicated tools or proxmox_api_call for individual requests.",
     parameters: Type.Object({
       node: Type.String({ description: "Proxmox node name" }),
       commands: Type.String({ description: "JSON array of batched node API calls, e.g. '[{\"method\":\"GET\",\"path\":\"version\"},{\"method\":\"GET\",\"path\":\"tasks\",\"args\":{\"limit\":1}}]'. Paths resolve relative to the node (use 'version', 'status', 'qemu', 'lxc', 'tasks', etc.). Each item has method (GET/POST/PUT/DELETE), path (string), and optional args (object). Legacy body is also accepted as an alias for args." }),

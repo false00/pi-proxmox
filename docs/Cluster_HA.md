@@ -106,20 +106,20 @@ Get status of the HA manager(s) in the cluster.
 
 ### Register a VM for HA
 ```bash
-curl -X POST -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -d "sid=vm:100&state=started&group=production" \
   https://node:8006/api2/json/cluster/ha/resources
 ```
 
 ### Create an HA Group with Node Preference
 ```bash
-curl -X POST -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -d "group=production&nodes=pve1,pve2,pve3&nofailback=1" \
   https://node:8006/api2/json/cluster/ha/groups
 ```
 
 ### Check HA Failover Status
 ```bash
-curl -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   https://node:8006/api2/json/cluster/ha/status
 ```

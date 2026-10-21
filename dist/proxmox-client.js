@@ -136,7 +136,7 @@ export class ProxmoxClient {
       this.csrfToken = data.CSRFPreventionToken;
     } else {
       throw new ProxmoxError(
-        "No authentication method available. Set PROXMOX_API_TOKEN or PROXMOX_PASSWORD in ~/.config/pi-proxmox/.env",
+        "No authentication method available. Configure a least-privilege API token (PROXMOX_TOKEN_ID and PROXMOX_TOKEN_SECRET, or PROXMOX_API_TOKEN) in ~/.config/pi-proxmox/.env; see docs/PERMISSIONS.md.",
       );
     }
   }
@@ -165,8 +165,9 @@ export class ProxmoxClient {
   async postWithTicketAuth(path, body = {}) {
     if (!this.password) {
       throw new ProxmoxError(
-        "/execute may reject API token authentication even when normal API calls succeed. " +
-        "Set PROXMOX_USERNAME and PROXMOX_PASSWORD in ~/.config/pi-proxmox/.env so the tool can retry with password-based ticket auth.",
+        "Password-based ticket auth is not configured (PROXMOX_USERNAME/PROXMOX_PASSWORD), so the request was not retried. " +
+        "/nodes/{node}/execute is root-only in Proxmox: no API token, role, or ACL satisfies it, only root@pam credentials do. " +
+        "Leaving the fallback unset is the recommended least-privilege setup; see docs/PERMISSIONS.md before enabling it.",
       );
     }
     const savedToken = this.token;

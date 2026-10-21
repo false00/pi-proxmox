@@ -11,18 +11,12 @@ POST /nodes/{node}/storage/{storage}/upload
 
 ### Requirements
 - **Content-type:** Must be sent as `multipart/form-data`.
-- **Auth restriction:** This endpoint requires **session ticket authentication** (`PVEAuthCookie`). API tokens cannot be used for uploads due to how multipart form data is processed.
+- **Auth:** API tokens work; the caller needs `Datastore.AllocateTemplate` on `/storage/{storage}`. This package's `proxmox_storage_upload` and `proxmox_api_upload_file` upload with the configured API token. Ticket authentication (`PVEAuthCookie` plus the `CSRFPreventionToken` header) also works.
 - **Supported content types:** `iso` (ISO images), `vztmpl` (LXC templates), `backup` (vma/vzdump backups), `snippets` (config snippets), `import` (disk images).
 
 ### Example
 ```bash
-# 1. Get ticket
-curl -k -d 'username=root@pam' --data-urlencode 'password=your_password' \
-  https://node:8006/api2/json/access/ticket | \
-  jq -r '.data.ticket' | sed 's/^/PVEAuthCookie=/' > cookie
-
-# 2. Upload file
-curl -k -L -b "$(<cookie)" \
+curl -k -L -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -F "file=@/path/to/ubuntu-24.04-desktop.iso" \
   -F "content=iso" \
   -F "filename=ubuntu-24.04-desktop.iso" \
@@ -69,7 +63,7 @@ Templates can be listed and then used for container creation, but downloading ne
 
 ### Using Templates for Container Creation
 ```bash
-curl -X POST -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -d "vmid=300&hostname=mycontainer&ostemplate=local:vztmpl/debian-12-standard_12.0-1_amd64.tar.gz&storage=local-lvm&memory=512&net0=name=eth0,bridge=vmbr0,ip=dhcp" \
   https://node:8006/api2/json/nodes/pve1/lxc
 ```

@@ -187,7 +187,7 @@ export function tokenList(client) {
     name: "proxmox_token_list",
     label: "List API Tokens",
     description: "Lists all API tokens for a specific user.",
-    parameters: Type.Object({ userid: Type.String({ description: "User ID (e.g., 'root@pam')" }) }),
+    parameters: Type.Object({ userid: Type.String({ description: "User ID (e.g., 'pi-proxmox@pve')" }) }),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
       return await client.get(`/access/users/${params.userid}/token`);
@@ -200,7 +200,7 @@ export function tokenCreate(client) {
     name: "proxmox_token_create",
     label: "Create API Token",
     description: "Creates a new API token for a user. The token secret is returned once.",
-    parameters: Type.Object({ userid: Type.String({ description: "User ID (e.g., 'root@pam')" }), tokenid: Type.String({ description: "Token name (e.g., 'automation')" }), comment: Type.Optional(Type.String({ description: "Token description" })) }),
+    parameters: Type.Object({ userid: Type.String({ description: "User ID (e.g., 'pi-proxmox@pve')" }), tokenid: Type.String({ description: "Token name (e.g., 'automation')" }), comment: Type.Optional(Type.String({ description: "Token description" })) }),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
       emitProgress(onUpdate, `Creating token '${params.tokenid}' for ${params.userid}...`);

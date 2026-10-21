@@ -165,26 +165,26 @@ DELETE /pools/{poolid}
 
 ### Add an NFS Storage
 ```bash
-curl -X POST -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -d "storage=nfs-backup&type=nfs&server=10.0.0.50&export=/srv/backup&content=backup&nodes=pve1,pve2&shared=1" \
   https://node:8006/api2/json/storage
 ```
 
 ### List Content on Storage
 ```bash
-curl -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   https://node:8006/api2/json/nodes/pve1/storage/local/content
 ```
 
 ### Create a Resource Pool
 ```bash
-curl -X POST -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -d "poolid=production&comment=Production workloads" \
   https://node:8006/api2/json/pools
 ```
 
 ### Delete a Volume
 ```bash
-curl -X DELETE -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X DELETE -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   https://node:8006/api2/json/nodes/pve1/storage/local-lvm/content/local-lvm:vm-100-disk-0
 ```

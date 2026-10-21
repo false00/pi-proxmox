@@ -283,33 +283,33 @@ Get VNC terminal proxy configuration.
 | Disks, network | `Sys.Modify` on `/nodes/{node}` |
 | Certificates, subscription | `Sys.Modify` on `/` |
 | Journal, syslog | `Sys.Audit` on `/nodes/{node}` |
-| Execute | `Sys.Console` on `/nodes/{node}` |
+| Execute | Root only (`root@pam`); no role or ACL grants it |
 | Stop, reboot | `Sys.PowerMgmt` on `/nodes/{node}` |
 
 ## Common Workflows
 
 ### View Disk Health via SMART
 ```bash
-curl -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   https://node:8006/api2/json/nodes/pve1/disks/smart/sda
 ```
 
 ### Create a ZFS Pool
 ```bash
-curl -X POST -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -d "disk=/dev/sdb&disk=/dev/sdc&name=tank&raidlevel=mirror&ashift=12" \
   https://node:8006/api2/json/nodes/pve1/disks/zfs
 ```
 
 ### Create a Linux Bridge
 ```bash
-curl -X POST -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -d "type=bridge&iface=vmbr1&address=192.168.100.1/24&autostart=1&bridge_ports=enp2s0" \
   https://node:8006/api2/json/nodes/pve1/network
 ```
 
 ### Read Recent Journal Entries
 ```bash
-curl -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   "https://node:8006/api2/json/nodes/pve1/journal?since=-1h&limit=100"
 ```

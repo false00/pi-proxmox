@@ -239,28 +239,28 @@ Create a device mapping.
 
 ### Create a Backup Job
 ```bash
-curl -X POST -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -d "id=nightly-backup&storage=backup-store&schedule=0 2 * * *&mode=snapshot&compress=zstd&all=1&prune-backups=keep-last=7" \
   https://node:8006/api2/json/cluster/backup
 ```
 
 ### Set Up an ACME Account
 ```bash
-curl -X POST -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -d "contact=admin@example.com&directory=https://acme-v02.api.letsencrypt.org/directory&tos=1" \
   https://node:8006/api2/json/cluster/acme
 ```
 
 ### Add a Metrics Server (InfluxDB)
 ```bash
-curl -X POST -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -d "server=influxdb.local&port=8089&protocol=influxdb&organization=proxmox&bucket=pve-metrics&enable=1" \
   https://node:8006/api2/json/cluster/metrics
 ```
 
 ### Add a Webhook Notification Endpoint
 ```bash
-curl -X POST -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -d "name=alert-webhook&type=webhook&url=https://hooks.example.com/proxmox&comment=Alert webhook" \
   https://node:8006/api2/json/cluster/notifications/endpoints
 ```

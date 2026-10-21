@@ -26,7 +26,7 @@ export function vmList(client) {
         const perms = await client._probePermissions();
         const notes = [];
         if (perms.canListVMs === false) {
-          notes.push("⚠ No VMs found — your API token appears to lack VM permissions. Fix: In the Proxmox Web UI, go to Datacenter > Permissions > API Tokens, select your token, and make sure \"Privilege Separation\" is UNCHECKED. Or recreate via CLI: `pveum user token add root@pam TOKENNAME --privsep=0`");
+          notes.push("⚠ No VMs found — the API token may lack VM.Audit on this node's VMs. Grant a role such as PVEAuditor to both the token and its user on a path that covers them, e.g. `pveum acl modify /pool/<pool> --roles PVEAuditor --users <user@realm> --tokens '<user@realm>!<token>'`. A privilege-separated token gets the intersection of both; see docs/PERMISSIONS.md. Do not switch to a root or full-privilege token.");
         }
         if (notes.length > 0) return { _data: result, _notes: notes };
       }

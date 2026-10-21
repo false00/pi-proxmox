@@ -25,6 +25,45 @@ function parseEnvFile(path) {
   return vars;
 }
 
+export function dotEnvTemplate(discovered) {
+  // Keep fallback credentials that were explicitly supplied; otherwise leave the discouraged fallback commented out.
+  const passwordFallback = discovered.password
+    ? [`PROXMOX_USERNAME=${discovered.username || "root@pam"}`, `PROXMOX_PASSWORD=${discovered.password}`]
+    : ["# PROXMOX_USERNAME=", "# PROXMOX_PASSWORD="];
+
+  return [
+    "# pi-proxmox configuration — auto-created on first run",
+    "# Replace these placeholder values with your Proxmox connection details.",
+    "# Least-privilege setup guide: https://github.com/false00/pi-proxmox/blob/master/docs/PERMISSIONS.md",
+    "",
+    "# --- Connection ---",
+    `PROXMOX_HOST=${discovered.host || "192.168.1.100"}`,
+    `PROXMOX_PORT=${discovered.port || "8006"}`,
+    `PROXMOX_VERIFY_SSL=${discovered.verifySsl || "false"}`,
+    "",
+    "# --- API Token (recommended) ---",
+    "# Use a dedicated non-root user and a token with privilege separation enabled (the default):",
+    "#   pveum user add pi-proxmox@pve",
+    "#   pveum user token add pi-proxmox@pve automation --privsep 1",
+    "# Grant roles to BOTH the user and the token (the token gets the intersection of both),",
+    "# on the narrowest path that works, for example read-only on a resource pool:",
+    "#   pveum acl modify /pool/<pool> --roles PVEAuditor --users pi-proxmox@pve",
+    "#   pveum acl modify /pool/<pool> --roles PVEAuditor --tokens 'pi-proxmox@pve!automation'",
+    `PROXMOX_TOKEN_ID=${discovered.tokenId || "pi-proxmox@pve!automation"}`,
+    `PROXMOX_TOKEN_SECRET=${discovered.tokenSecret || "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"}`,
+    "",
+    "# --- Password fallback (optional, discouraged; leave unset) ---",
+    "# Used for every request if no API token is set, and to retry proxmox_node_execute.",
+    "# /nodes/{node}/execute is root-only, so that retry only works with root@pam credentials",
+    "# (the node's Linux root password). Left unset, proxmox_node_execute fails closed.",
+    "# PROXMOX_USERNAME defaults to root@pam when unset.",
+    ...passwordFallback,
+    "",
+    "# --- Timeout ---",
+    `PROXMOX_TIMEOUT_MS=${discovered.timeoutMs || "30000"}`,
+  ].join("\n");
+}
+
 function ensureDotEnvFile(discovered) {
   if (existsSync(envPath())) return;
 
@@ -33,31 +72,7 @@ function ensureDotEnvFile(discovered) {
       mkdirSync(configDir(), { recursive: true });
     }
 
-    const lines = [
-      "# pi-proxmox configuration — auto-created on first run",
-      "# Replace these placeholder values with your Proxmox connection details.",
-      "",
-      "# --- Connection ---",
-      `PROXMOX_HOST=${discovered.host || "192.168.1.100"}`,
-      `PROXMOX_PORT=${discovered.port || "8006"}`,
-      `PROXMOX_VERIFY_SSL=${discovered.verifySsl || "false"}`,
-      "",
-      "# --- API Token (recommended) ---",
-      "# Create one in the Proxmox web UI under: Datacenter > Permissions > API Tokens",
-      "# Or via CLI: pveum user token add root@pam automation --privsep=0",
-      "# The GUI will show you a Token ID (e.g. 'root@pam!automation') and a secret UUID.",
-      `PROXMOX_TOKEN_ID=${discovered.tokenId || "root@pam!automation"}`,
-      `PROXMOX_TOKEN_SECRET=${discovered.tokenSecret || "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"}`,
-      "",
-      "# --- Password fallback (only if no API token is set) ---",
-      `PROXMOX_USERNAME=${discovered.username || "root@pam"}`,
-      `PROXMOX_PASSWORD=${discovered.password || ""}`,
-      "",
-      "# --- Timeout ---",
-      `PROXMOX_TIMEOUT_MS=${discovered.timeoutMs || "30000"}`,
-    ];
-
-    writeFileSync(envPath(), lines.join("\n"), "utf-8");
+    writeFileSync(envPath(), dotEnvTemplate(discovered), "utf-8");
   } catch {
     // silently ignore — .env file is a convenience, not a requirement
   }

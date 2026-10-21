@@ -163,21 +163,21 @@ Configure SDN DNS integration.
 
 ### Create a VXLAN Zone
 ```bash
-curl -X POST -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -d "zone=overlay&type=vxlan&nodes=pve1,pve2" \
   https://node:8006/api2/json/cluster/sdn/zones
 ```
 
 ### Create a VNet on a Zone
 ```bash
-curl -X POST -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -d "vnet=net100&zone=overlay&tag=100" \
   https://node:8006/api2/json/cluster/sdn/vnets
 ```
 
 ### Add a Subnet
 ```bash
-curl -X POST -H "Authorization: PVEAPIToken=root@pam!token=UUID" \
+curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
   -d "subnet=10.0.100.0/24&gateway=10.0.100.1" \
   https://node:8006/api2/json/cluster/sdn/vnets/net100/subnets
 ```
