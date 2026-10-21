@@ -48,6 +48,7 @@ Run individual suites:
 
 ```bash
 npm run test:smoke
+npm run test:endpoints
 npm run test:auth
 npm run test:pagination
 npm run test:vm-agent
@@ -61,6 +62,8 @@ npm run test:raw-api
 npm run test:package
 npm run audit:official-api
 ```
+
+`test:smoke`, `test:endpoints`, `test:mcp`, and `test:package` run without a Proxmox cluster. `test:endpoints` checks every tool request and every endpoint named in the docs against `tests/fixtures/pve-api-snapshot.json`; refresh that snapshot with `npm run update:api-snapshot` when Proxmox changes its API.
 
 ## Change checklist
 

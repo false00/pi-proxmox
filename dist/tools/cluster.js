@@ -100,9 +100,9 @@ export function clusterUpdateOptions(client) {
     parameters: Type.Object({
       language: Type.Optional(Type.String({ description: "Default language (e.g., 'en')" })),
       keyboard: Type.Optional(Type.String({ description: "Keyboard layout (e.g., 'en-us')" })),
-      console: Type.Optional(Type.String({ description: "Console viewer (e.g., 'applet', 'vv', 'html5')" })),
-      email: Type.Optional(Type.String({ description: "Cluster notification email address" })),
+      console: Type.Optional(Type.String({ description: "Default console viewer: 'html5', 'xtermjs', or 'vv' (SPICE)" })),
       mac_prefix: Type.Optional(Type.String({ description: "MAC address prefix" })),
+      email_from: Type.Optional(Type.String({ description: "Sender address for notification emails (default: root@$hostname)" })),
     }),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
@@ -115,12 +115,12 @@ export function clusterUpdateOptions(client) {
 export function clusterConfig(client) {
   return {
     name: "proxmox_cluster_config",
-    label: "Get Cluster Config",
-    description: "Gets the cluster join configuration.",
+    label: "Get Cluster Join Information",
+    description: "Gets the information another node needs to join this cluster (GET /cluster/config/join): node list with certificate fingerprints, corosync totem settings, and the config digest. Fails on a node that is not part of a cluster.",
     parameters: Type.Object({}),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
-      return await client.get("/cluster/config");
+      return await client.get("/cluster/config/join");
     }),
   };
 }

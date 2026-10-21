@@ -24,12 +24,12 @@ Aggregated view of all cluster resources (VMs, CTs, nodes, storage) with type, s
 ```
 GET /cluster/log
 ```
-Access cluster-wide log entries. **Parameters:** `start` (int), `limit` (int), `since` (timestamp).
+Access cluster-wide log entries. **Parameters:** `max` (integer, maximum number of entries).
 
 ```
 GET /cluster/options
 ```
-View cluster-wide configuration options (e.g., `fence`, `ha`, `console`, `keyboard`, `language`, `email`).
+View cluster-wide configuration options (e.g., `fencing`, `ha`, `console`, `keyboard`, `language`, `email_from`).
 
 ```
 PUT /cluster/options
@@ -48,13 +48,13 @@ Returns all nodes in the cluster with their status, CPU, memory, uptime, and loa
 ```
 GET /nodes/{node}
 ```
-Details for a specific node.
+Index of the node's sub-resources.
 
 ### Node Status
 ```
 GET /nodes/{node}/status
 ```
-Real-time status including CPU, memory, swap, disk, uptime, kernel version, and Proxmox version.
+Real-time status including CPU, memory, swap, root filesystem, uptime, kernel version, and Proxmox version.
 
 ## Resource Pools
 
@@ -62,7 +62,7 @@ Real-time status including CPU, memory, swap, disk, uptime, kernel version, and 
 ```
 GET /pools
 ```
-Returns all resource pools.
+Returns all resource pools, or one pool's configuration with `poolid`.
 
 ### Create Pool
 ```
@@ -74,18 +74,19 @@ POST /pools
 ```
 GET /pools/{poolid}
 ```
-Returns pool details including member VMs, CTs, and storage.
+Returns pool details including member VMs, CTs, and storage (deprecated; use `GET /pools` with `poolid`).
 
 ### Update Pool
 ```
 PUT /pools/{poolid}
 ```
-Add/remove members and update comments.
+Add or remove members (`vms`, `storage`, with `delete=1` to remove) and update the comment (deprecated; use `PUT /pools` with `poolid`).
 
 ### Delete Pool
 ```
 DELETE /pools/{poolid}
 ```
+Delete an empty pool (deprecated; use `DELETE /pools` with `poolid`).
 
 ## Version
 ```
@@ -101,18 +102,22 @@ Returns the next available VM/CT ID. **Parameter:** `vmid` (integer, optional â€
 
 ## Cluster Configuration
 ```
-GET /cluster/config
+GET /cluster/config/join
 ```
-Returns cluster join configuration.
+Returns the information a new node needs to join this cluster.
 
 ## Permissions
 | Endpoint | Required Permission |
 |----------|-------------------|
-| Cluster status, resources, log | `Sys.Audit` on `/` |
-| Cluster options | `Sys.Modify` on `/` |
-| Node list, status | `Sys.Audit` on `/nodes/{node}` |
-| Pool CRUD | `Pool.Allocate` on `/pool/{poolid}` |
-| Version | None (public) |
+| Cluster status, join information | `Sys.Audit` on `/` |
+| Cluster resources | None beyond authentication; lists only what you can audit |
+| Cluster log | None beyond authentication; all entries need `Sys.Syslog` on `/` |
+| Cluster options | `Sys.Audit` (read, full output) or `Sys.Modify` (change) on `/` |
+| Node list | None beyond authentication |
+| Node status | `Sys.Audit` on `/nodes/{node}` |
+| Pool details | `Pool.Audit` on `/pool/{poolid}` |
+| Pool create, update, delete | `Pool.Allocate` on `/pool/{poolid}` |
+| Version | None beyond authentication |
 
 ## Common Workflows
 

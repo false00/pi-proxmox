@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
@@ -34,8 +35,13 @@ export async function run() {
 
     try {
       await client.connect(transport);
+      const serverInfo = client.getServerVersion();
+      const pkg = JSON.parse(readFileSync(resolve(process.cwd(), "package.json"), "utf8"));
+      if (serverInfo?.version !== pkg.version) {
+        throw new Error(`MCP server reports version ${serverInfo?.version}, package.json has ${pkg.version}`);
+      }
       const response = await client.listTools();
-      if (response.tools.length !== 142) throw new Error(`Expected 142 MCP tools, got ${response.tools.length}`);
+      if (response.tools.length !== 141) throw new Error(`Expected 141 MCP tools, got ${response.tools.length}`);
 
       const create = response.tools.find(tool => tool.name === "proxmox_lxc_create");
       if (!create) throw new Error("Missing proxmox_lxc_create MCP tool");

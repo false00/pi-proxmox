@@ -4,19 +4,21 @@ This document covers the API endpoints for managing firewall rules at the cluste
 
 ## Overview
 Proxmox VE firewall operates at multiple levels:
-- **Cluster level** — Global firewall rules applying to all nodes
-- **Node level** — Per-physical-host firewall rules
-- **VM/CT level** — Per-virtual-machine or per-container firewall rules
+- **Cluster level** — Cluster-wide rules, aliases, IPSets, security groups, and the master `enable` switch
+- **Node level** — Per-physical-host rules and options
+- **VM/CT level** — Per-virtual-machine or per-container rules, aliases, IPSets, and options
 
-Rules are evaluated from most specific (VM/CT) to least specific (cluster).
+Each level has its own rules and options. Nothing is filtered until the firewall is enabled in the cluster-level options. Guest rules also need the firewall enabled in the guest's options and on each network device (`firewall=1`).
 
 ## Base Paths
-| Level | Path |
-|-------|------|
-| Cluster | `/cluster/firewall` |
-| Node | `/nodes/{node}/firewall` |
-| VM | `/nodes/{node}/qemu/{vmid}/firewall` |
-| CT | `/nodes/{node}/lxc/{vmid}/firewall` |
+| Level | Path | Sub-resources |
+|-------|------|---------------|
+| Cluster | `/cluster/firewall` | `rules`, `aliases`, `ipset`, `groups`, `options`, `macros`, `refs` |
+| Node | `/nodes/{node}/firewall` | `rules`, `options`, `log` |
+| VM | `/nodes/{node}/qemu/{vmid}/firewall` | `rules`, `aliases`, `ipset`, `options`, `log`, `refs` |
+| CT | `/nodes/{node}/lxc/{vmid}/firewall` | `rules`, `aliases`, `ipset`, `options`, `log`, `refs` |
+
+Nodes have no aliases or IPSets of their own; node rules use the cluster-level ones.
 
 ## Firewall Rules
 ```
@@ -27,40 +29,37 @@ List all firewall rules at the specified level.
 ```
 POST {level}/rules
 ```
-Create a new firewall rule.
+Create a new firewall rule. Proxmox inserts it at the top of the list (position 0) and creates it disabled unless `enable=1` is passed.
 
 **Parameters:**
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `type` | string | Rule type: `in`, `out` |
-| `action` | string | `ACCEPT`, `DROP`, `REJECT` |
-| `source` | string | Source IP/CIDR |
-| `dest` | string | Destination IP/CIDR |
+| `type` | string | Rule type (required): `in`, `out`, `forward`, or `group` |
+| `action` | string | `ACCEPT`, `DROP`, `REJECT`, or a security group name for `type=group` (required) |
+| `source` | string | Source IP/CIDR, alias, or `+ipset` |
+| `dest` | string | Destination IP/CIDR, alias, or `+ipset` |
 | `dport` | string | Destination port(s) |
 | `sport` | string | Source port(s) |
 | `proto` | string | Protocol: `tcp`, `udp`, `icmp` |
 | `iface` | string | Network interface |
-| `log` | string | Log level: `emerg`, `alert`, `crit`, `err`, `warn`, `notice`, `info`, `debug`, `nolog` |
+| `macro` | string | Predefined macro (see `GET /cluster/firewall/macros`) |
+| `log` | string | Log level: `emerg`, `alert`, `crit`, `err`, `warning`, `notice`, `info`, `debug`, `nolog` |
 | `enable` | integer | `1` to enable, `0` to disable |
 | `comment` | string | Rule description |
 
 ```
+GET {level}/rules/{pos}
 PUT {level}/rules/{pos}
 ```
-Update a rule at position `pos`.
+Read or modify the rule at position `pos`; `enable=1`/`enable=0` turns it on or off, and `moveto` moves it.
 
 ```
 DELETE {level}/rules/{pos}
 ```
 Delete a firewall rule.
 
-```
-PUT {level}/rules/{pos}/enable
-POST {level}/rules/{pos}/toggle
-```
-Enable/disable or toggle a firewall rule.
-
 ## Firewall Aliases
+Cluster, VM, and CT levels only.
 ```
 GET {level}/aliases
 ```
@@ -74,12 +73,14 @@ Create an alias.
 **Parameters:** `name` (string), `cidr` (string), `comment` (string)
 
 ```
+GET {level}/aliases/{name}
 PUT {level}/aliases/{name}
 DELETE {level}/aliases/{name}
 ```
-Update or delete an alias.
+Read, update, or delete an alias.
 
 ## IPSet Management
+Cluster, VM, and CT levels only.
 ```
 GET {level}/ipset
 ```
@@ -111,9 +112,11 @@ Add a CIDR entry.
 **Parameters:** `cidr` (string), `comment` (string), `nomatch` (boolean)
 
 ```
+GET {level}/ipset/{name}/{cidr}
+PUT {level}/ipset/{name}/{cidr}
 DELETE {level}/ipset/{name}/{cidr}
 ```
-Remove an entry from an IPSet.
+Read, update, or remove an IPSet entry.
 
 ## Security Groups
 ```
@@ -129,20 +132,23 @@ Create a security group.
 **Parameters:** `group` (string), `comment` (string)
 
 ```
-GET /cluster/firewall/groups/{group}
-PUT /cluster/firewall/groups/{group}
 DELETE /cluster/firewall/groups/{group}
 ```
-Read, update, or delete a security group.
+Delete a security group.
 
 ### Group Rules
 ```
-GET /cluster/firewall/groups/{group}/rules
-POST /cluster/firewall/groups/{group}/rules
-PUT /cluster/firewall/groups/{group}/rules/{pos}
-DELETE /cluster/firewall/groups/{group}/rules/{pos}
+GET /cluster/firewall/groups/{group}
+POST /cluster/firewall/groups/{group}
 ```
-Manage rules within a security group (same parameters as firewall rules).
+List the group's rules, or add a rule to it (same parameters as firewall rules).
+
+```
+GET /cluster/firewall/groups/{group}/{pos}
+PUT /cluster/firewall/groups/{group}/{pos}
+DELETE /cluster/firewall/groups/{group}/{pos}
+```
+Read, modify, or delete a group rule.
 
 ## Firewall Options
 ```
@@ -153,68 +159,52 @@ View firewall options at the specified level.
 ```
 PUT {level}/options
 ```
-Update firewall options.
+Update firewall options. Each level accepts a different set; Proxmox rejects options that do not apply to the level.
 
-**Options:**
-| Option | Type | Description |
-|--------|------|-------------|
-| `enable` | integer | Enable/disable firewall |
-| `policy_in` | string | Default input policy: `ACCEPT`, `DROP`, `REJECT` |
-| `policy_out` | string | Default output policy |
-| `log_level_in` | string | Log level for input |
-| `log_level_out` | string | Log level for output |
-| `nf_conntrack_allow` | string | Connection tracking allow rules |
-| `smurf_log_level` | string | Log level for smurf attack detection |
-| `tcp_flags_log_level` | string | Log level for TCP flag filtering |
-| `dhcp` | boolean | Allow DHCP |
-| `ndp` | boolean | Allow NDP (for IPv6) |
+**Common options:**
+| Option | Type | Levels | Description |
+|--------|------|--------|-------------|
+| `enable` | integer | all | Enable/disable the firewall |
+| `policy_in` | string | cluster, VM, CT | Default input policy: `ACCEPT`, `DROP`, `REJECT` |
+| `policy_out` | string | cluster, VM, CT | Default output policy |
+| `log_level_in` | string | node, VM, CT | Log level for input |
+| `log_level_out` | string | node, VM, CT | Log level for output |
+| `nf_conntrack_allow_invalid` | boolean | node | Allow invalid packets on connection tracking |
+| `smurf_log_level` | string | node | Log level for smurf attack detection |
+| `tcp_flags_log_level` | string | node | Log level for TCP flag filtering |
+| `dhcp` | boolean | VM, CT | Allow DHCP |
+| `ndp` | boolean | node, VM, CT | Allow NDP (for IPv6) |
 
-## Node-specific Firewall
+## Firewall Log
 ```
-GET /nodes/{node}/firewall/rules
-GET /nodes/{node}/firewall/aliases
-GET /nodes/{node}/firewall/ipset
-GET /nodes/{node}/firewall/options
-```
-Node-level firewall uses the same sub-paths as cluster firewall.
-
-## VM/CT Firewall
-```
-GET /nodes/{node}/qemu/{vmid}/firewall/rules
-GET /nodes/{node}/lxc/{vmid}/firewall/rules
-GET /nodes/{node}/qemu/{vmid}/firewall/aliases
-GET /nodes/{node}/lxc/{vmid}/firewall/aliases
-GET /nodes/{node}/qemu/{vmid}/firewall/options
-GET /nodes/{node}/lxc/{vmid}/firewall/options
-```
-VM and CT firewall follows the same pattern.
-
-### VM/CT Log
-```
+GET /nodes/{node}/firewall/log
 GET /nodes/{node}/qemu/{vmid}/firewall/log
 GET /nodes/{node}/lxc/{vmid}/firewall/log
 ```
-View firewall log for a specific VM or container.
+View the firewall log of a node, VM, or container.
 
-### VM/CT REF (Refcount/Status)
+## References
 ```
+GET /cluster/firewall/refs
 GET /nodes/{node}/qemu/{vmid}/firewall/refs
 GET /nodes/{node}/lxc/{vmid}/firewall/refs
 ```
-Get references/groups applied to the VM or container.
+List the IPSets and aliases that rules at that level can reference.
 
 ## Permissions
-- `Sys.Audit` on `/` — Read firewall rules
-- `Sys.Modify` on `/` — Modify firewall rules
-- `VM.Audit` on VM path — Read VM firewall
-- `VM.Config` on VM path — Modify VM firewall
+- `Sys.Audit` on `/` — read cluster-level firewall configuration
+- `Sys.Modify` on `/` — modify cluster-level firewall configuration
+- `Sys.Audit` on `/nodes/{node}` — read node-level firewall configuration
+- `Sys.Modify` on `/nodes/{node}` — modify node-level firewall configuration
+- `VM.Audit` on `/vms/{vmid}` — read VM or CT firewall configuration
+- `VM.Config.Network` on `/vms/{vmid}` — modify VM or CT firewall configuration
 
 ## Common Workflows
 
 ### Add a Cluster-level Accept Rule
 ```bash
 curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
-  -d "action=ACCEPT&source=10.0.0.0/8&dest=10.0.0.0/8&proto=tcp&dport=80,443&enable=1&comment=Allow internal HTTP" \
+  -d "type=in&action=ACCEPT&source=10.0.0.0/8&dest=10.0.0.0/8&proto=tcp&dport=80,443&enable=1&comment=Allow internal HTTP" \
   https://node:8006/api2/json/cluster/firewall/rules
 ```
 
@@ -228,7 +218,7 @@ curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
 ### Add a VM-level Firewall Rule
 ```bash
 curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
-  -d "action=DROP&source=0.0.0.0/0&dport=22&proto=tcp&enable=1" \
+  -d "type=in&action=DROP&source=0.0.0.0/0&dport=22&proto=tcp&enable=1" \
   https://node:8006/api2/json/nodes/pve1/qemu/100/firewall/rules
 ```
 

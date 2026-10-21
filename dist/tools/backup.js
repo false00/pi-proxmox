@@ -1,6 +1,11 @@
 import { Type } from "typebox";
 import { throwIfAborted, emitProgress, safeExecute } from "../tool-runtime.js";
 
+function jobEnabled(value) {
+  // "enabled" defaults to 1 and may be absent; disabled jobs report 0.
+  return !(value === 0 || value === "0" || value === false);
+}
+
 export function backupList(client) {
   return {
     name: "proxmox_backup_list",
@@ -13,8 +18,8 @@ export function backupList(client) {
       const jobs = await client.get("/cluster/backup");
       return jobs.map(j => ({
         id: j.id, node: j.node || "", storage: j.storage || "",
-        schedule: j.schedule || "", mode: j.mode || "snapshot", enabled: j.enable !== 0,
-        compress: j.compress || "", vmid: j.vmid || "all",
+        schedule: j.schedule || "", mode: j.mode || "snapshot", enabled: jobEnabled(j.enabled),
+        compress: j.compress || "", vmid: j.vmid || (j.all ? "all" : ""), pool: j.pool || "",
         "prune-backups": j["prune-backups"] || "",
       }));
     }),
@@ -30,9 +35,9 @@ export function backupCreate(client) {
       id: Type.String({ description: "Backup job ID" }),
       node: Type.String({ description: "Node to run the backup on" }),
       storage: Type.String({ description: "Target storage ID" }),
-      schedule: Type.String({ description: "Cron schedule (e.g., '0 2 * * *' for daily at 2am)" }),
+      schedule: Type.String({ description: "Schedule as a systemd calendar event, e.g. '02:00' (daily at 2am) or 'sat 03:00'; cron syntax is not accepted" }),
       mode: Type.Optional(Type.String({ description: "Backup mode: snapshot (default), suspend, stop" })),
-      vmid: Type.Optional(Type.String({ description: "VM/CT IDs to backup (comma-separated, omit for all)" })),
+      vmid: Type.Optional(Type.String({ description: "VM/CT IDs to back up (comma-separated); pass all=1 instead to back up every guest" })),
       compress: Type.Optional(Type.String({ description: "Compression: lzo, gzip, zstd" })),
       "prune-backups": Type.Optional(Type.String({ description: "Retention: 'keep-last=7', 'keep-daily=7', etc." })),
       enabled: Type.Optional(Type.Integer({ description: "Enable job: 1 or 0 (default: 1)" })),

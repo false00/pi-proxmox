@@ -15,7 +15,7 @@ GET /nodes/{node}/lxc
 ```
 List all containers on a node.
 
-**Returns:** Array with `vmid`, `name`, `status`, `cpu`, `mem`, `disk`, `uptime`, `swap`, `cgroup-mode`, `lock`.
+**Returns:** Array with `vmid`, `name`, `status`, `cpu`, `cpus`, `mem`, `maxmem`, `disk`, `maxdisk`, `uptime`, `tags`, `template`, `lock`, and I/O counters.
 
 ### Container Status
 ```
@@ -23,10 +23,7 @@ GET /nodes/{node}/lxc/{vmid}/status/current
 ```
 Get real-time container status including CPU usage, memory, swap, network, and disk I/O.
 
-```
-GET /nodes/{node}/lxc/{vmid}/status
-```
-Alias for `status/current`.
+`GET /nodes/{node}/lxc/{vmid}/status` itself only lists the status sub-endpoints.
 
 ### Container Configuration
 ```
@@ -75,32 +72,31 @@ Create a new LXC container.
 POST /nodes/{node}/lxc/{vmid}/status/start
 POST /nodes/{node}/lxc/{vmid}/status/stop
 POST /nodes/{node}/lxc/{vmid}/status/shutdown
-POST /nodes/{node}/lxc/{vmid}/status/reset
 POST /nodes/{node}/lxc/{vmid}/status/suspend
 POST /nodes/{node}/lxc/{vmid}/status/resume
 POST /nodes/{node}/lxc/{vmid}/status/reboot
 ```
-Control container power state.
+Control container power state. Containers have no hard reset like QEMU's `status/reset`; stop and start the container instead.
 
 ### Update Configuration
 ```
 PUT /nodes/{node}/lxc/{vmid}/config
 ```
-Modify container configuration. All creation parameters can be updated.
+Modify container configuration (CPU, memory, network, mount points, options). Settings that only apply at creation, such as `ostemplate`, `password`, and `ssh-public-keys`, cannot be changed here.
 
 ### Delete Container
 ```
 DELETE /nodes/{node}/lxc/{vmid}
 ```
-Remove a container. **Parameters:** `purge` (boolean) — remove from backup jobs; `destroy-unreferenced-disks` (boolean).
+Remove a container. **Parameters:** `purge` (boolean) — also remove it from related configuration such as backup jobs, replication jobs, and HA; `destroy-unreferenced-disks` (boolean); `force` (boolean, destroy even if running).
 
 ### Migrate Container
 ```
 POST /nodes/{node}/lxc/{vmid}/migrate
 ```
-Migrate container to another node.
+Migrate container to another node. Running containers cannot be live-migrated; use `restart=1` for a restart migration.
 
-**Parameters:** `target` (string), `online` (boolean, live migration), `restart` (boolean), `force` (boolean).
+**Parameters:** `target` (string), `restart` (boolean), `timeout` (integer, shutdown timeout for restart migration), `target-storage` (string), `online` (boolean), `bwlimit` (integer).
 
 ## Snapshots
 
@@ -113,7 +109,7 @@ GET /nodes/{node}/lxc/{vmid}/snapshot
 ```
 POST /nodes/{node}/lxc/{vmid}/snapshot
 ```
-**Parameters:** `snapname` (string), `description` (string), `remove` (string, comma-separated to exclude).
+**Parameters:** `snapname` (string), `description` (string).
 
 ### Rollback
 ```
@@ -148,13 +144,13 @@ Convert a stopped container to a template.
 PUT /nodes/{node}/lxc/{vmid}/resize
 ```
 Resize a mount point.
-**Parameters:** `mp` (string, mount point ID like `mp0`), `size` (string, e.g., `+5G`).
+**Parameters:** `disk` (string, `rootfs` or a mount point such as `mp0`), `size` (string, e.g., `+5G`; shrinking is not supported).
 
 ```
 POST /nodes/{node}/lxc/{vmid}/move_volume
 ```
-Move a volume to different storage.
-**Parameters:** `volume` (string), `storage` (string), `delete` (boolean), `digest` (string).
+Move a volume to different storage or to another container.
+**Parameters:** `volume` (string), `storage` (string), `target-vmid` (integer), `delete` (boolean), `digest` (string).
 
 ## Container Firewall
 ```
@@ -171,12 +167,13 @@ GET /nodes/{node}/lxc/{vmid}/firewall/refs
 ```
 Per-container firewall rules, aliases, and options. See [Cluster_Firewall](Cluster_Firewall.md) for parameter details.
 
-## VNC Console
+## Console
 ```
-GET /nodes/{node}/lxc/{vmid}/vncproxy
+POST /nodes/{node}/lxc/{vmid}/vncproxy
+POST /nodes/{node}/lxc/{vmid}/termproxy
 POST /nodes/{node}/lxc/{vmid}/spiceproxy
 ```
-Get proxy tickets for container console access.
+Create proxy tickets for container console access (VNC, xterm.js, or SPICE).
 
 ## Monitoring
 ```
@@ -194,19 +191,27 @@ View pending configuration changes (applied on next restart).
 | Action | Required Permission |
 |--------|-------------------|
 | List, status, config | `VM.Audit` on `/vms/{vmid}` |
-| Create, modify, delete | `VM.Config` on `/vms/{vmid}` |
+| Create | `VM.Allocate` on `/vms/{vmid}` or on the pool given as `pool`; `Datastore.AllocateSpace` on the storage |
+| Modify configuration | The `VM.Config.*` privilege for each setting changed (`VM.Config.CPU`, `VM.Config.Memory`, `VM.Config.Network`, `VM.Config.Disk`, `VM.Config.Options`) on `/vms/{vmid}` |
+| Delete | `VM.Allocate` on `/vms/{vmid}` |
 | Power operations | `VM.PowerMgmt` on `/vms/{vmid}` |
-| Migrate | `VM.Config` + `VM.Clone` |
-| Snapshot management | `VM.Snapshot` on `/vms/{vmid}` |
-| Templates | `VM.Config` on `/vms/{vmid}` |
-| Firewall | `VM.Config` on `/vms/{vmid}` |
+| Migrate | `VM.Migrate` on `/vms/{vmid}` |
+| Snapshot management | `VM.Snapshot` on `/vms/{vmid}` (rollback: or `VM.Snapshot.Rollback`) |
+| Convert to template | `VM.Allocate` on `/vms/{vmid}` |
+| Resize, move volumes | `VM.Config.Disk` on `/vms/{vmid}` (moving also needs `Datastore.AllocateSpace` on the target storage) |
+| Firewall | `VM.Audit` (read) or `VM.Config.Network` (change) on `/vms/{vmid}` |
+| Console | `VM.Console` on `/vms/{vmid}` |
 
 ## Common Workflows
 
 ### Create and Start a Container
 ```bash
 curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
-  -d "vmid=300&hostname=web-ct&ostemplate=local:vztmpl/debian-12-standard_12.0-1_amd64.tar.gz&storage=local-lvm&rootfs=local-lvm:8&memory=2048&swap=512&cores=2&net0=name=eth0,bridge=vmbr0,ip=dhcp&password=secret123&start=1" \
+  --data-urlencode "vmid=300" --data-urlencode "hostname=web-ct" \
+  --data-urlencode "ostemplate=local:vztmpl/debian-12-standard_12.0-1_amd64.tar.gz" \
+  --data-urlencode "rootfs=local-lvm:8" --data-urlencode "memory=2048" --data-urlencode "swap=512" \
+  --data-urlencode "cores=2" --data-urlencode "net0=name=eth0,bridge=vmbr0,ip=dhcp" \
+  --data-urlencode "ssh-public-keys@$HOME/.ssh/id_ed25519.pub" --data-urlencode "start=1" \
   https://node:8006/api2/json/nodes/pve1/lxc
 ```
 
@@ -227,7 +232,7 @@ curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
 ### Resize Container Rootfs
 ```bash
 curl -X PUT -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
-  -d "mp=mp0&size=+10G" \
+  -d "disk=rootfs&size=+10G" \
   https://node:8006/api2/json/nodes/pve1/lxc/300/resize
 ```
 

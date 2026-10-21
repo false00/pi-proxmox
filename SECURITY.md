@@ -61,6 +61,7 @@ For production use:
 - use a dedicated, non-root Proxmox user and an API token with privilege separation enabled
 - grant roles to both the user and the token on the narrowest path that works (for example a resource pool), starting read-only; see [docs/PERMISSIONS.md](docs/PERMISSIONS.md)
 - do not use `root@pam` tokens or credentials for everyday work, and leave the password fallback unset so root-only operations fail closed
+- set `PROXMOX_VERIFY_SSL=true` once the Proxmox host presents a certificate this machine trusts; the default `false` accepts the self-signed certificate Proxmox installs, and it applies only to requests to that host (files that `proxmox_storage_upload` downloads from other URLs are always TLS-verified)
 - keep access-control privileges (users, tokens, ACLs, roles) off the token Pi uses
 - scope and review access deliberately
 - test against a non-critical node or lab environment before wide rollout

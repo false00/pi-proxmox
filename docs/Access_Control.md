@@ -37,7 +37,7 @@ POST /access/users
 | `firstname` | string | First name |
 | `lastname` | string | Last name |
 | `groups` | string | Comma-separated group list |
-| `keys` | string | SSH public keys |
+| `keys` | string | Keys for two-factor authentication (Yubico) |
 
 ### Update User
 ```
@@ -62,7 +62,7 @@ GET /access/groups
 ```
 POST /access/groups
 ```
-**Parameters:** `groupid` (string), `comment` (string), `members` (string, comma-separated user IDs).
+**Parameters:** `groupid` (string), `comment` (string). Groups have no member list of their own: add users to a group through the user's `groups` parameter (`POST /access/users`, or `PUT /access/users/{userid}` with `append=1`).
 
 ### Get/Update/Delete Group
 ```
@@ -158,43 +158,52 @@ Synchronize users from an LDAP/AD domain.
 
 ## Multi-Factor Authentication (TFA)
 
-### TFA Configuration
+### List TFA Entries
 ```
 GET /access/tfa
 ```
-Returns the TFA (Two-Factor Authentication) configuration for users.
+Lists the TFA entries of all users the caller may see, or only the caller's own.
 
-### TFA User Configuration
+### TFA Types of a User
 ```
 GET /access/users/{userid}/tfa
 ```
-Get TFA methods configured for a specific user.
+Get the TFA types configured for a user (personal and realm-enforced).
+
+### Manage a User's TFA Entries
+```
+GET /access/tfa/{userid}
+POST /access/tfa/{userid}
+```
+List a user's TFA entries, or add one (`type`: `totp`, `u2f`, `webauthn`, `recovery`, or `yubico`).
 
 ```
-POST /access/users/{userid}/tfa
+GET /access/tfa/{userid}/{id}
+PUT /access/tfa/{userid}/{id}
+DELETE /access/tfa/{userid}/{id}
 ```
-Add a TFA method for a user (TOTP, U2F, YubiKey).
+Read, update, or remove a single TFA entry.
 
 ```
-DELETE /access/users/{userid}/tfa/{id}
+PUT /access/users/{userid}/unlock-tfa
 ```
-Remove a TFA method.
+Unlock a user's TFA authentication, for example after it was locked by too many failed attempts.
 
 ## Password Management
 ```
-POST /access/password
+PUT /access/password
 ```
-**Parameters:** `userid` (string), `password` (string, new password).
+**Parameters:** `userid` (string), `password` (string, new password), `confirmation-password` (string, the current password of the user performing the change).
 
 ## API Tokens
 ```
 GET /access/users/{userid}/token
-POST /access/users/{userid}/token
 GET /access/users/{userid}/token/{tokenid}
+POST /access/users/{userid}/token/{tokenid}
 PUT /access/users/{userid}/token/{tokenid}
 DELETE /access/users/{userid}/token/{tokenid}
 ```
-Token management for individual users. See [API_Authentication](API_Authentication.md) for token usage.
+Token management for individual users. `POST` creates the token and returns its secret once, in the `value` field. See [API_Authentication](API_Authentication.md) for token usage.
 
 Tokens are created with privilege separation by default (`privsep=1`): a privilege-separated token needs its own ACL entries (the `tokens` parameter of `PUT /access/acl`), and its effective permissions are the intersection of its user's and its own. Grant roles to both the user and the token, on the narrowest path that works. See [PERMISSIONS](PERMISSIONS.md) for the setup this package recommends.
 
@@ -213,6 +222,10 @@ OpenID Connect configuration.
 | Role create/update/delete | `Sys.Modify` on `/access` |
 | ACL management | `Permissions.Modify` on the target path (or `Datastore.Allocate`, `VM.Allocate`, `Pool.Allocate` for `/storage/...`, `/vms/...`, `/pool/...`) |
 | API tokens | Own user: always allowed; others: `User.Modify` for the user's groups |
-| Domain config | `Sys.Audit` (read), `Sys.Modify` (write) |
-| TFA management | `User.Modify` on `/access` |
-| Password change | Self: always allowed; others: `User.Modify` |
+| Realm list (`GET /access/domains`) | None; the list is public because the login screen needs it |
+| Realm configuration read | `Realm.Allocate` or `Sys.Audit` on `/access/realm` |
+| Realm create/update/delete | `Realm.Allocate` on `/access/realm` |
+| Realm sync | `Realm.AllocateUser` on `/access/realm/<realm>` and `User.Modify` on `/access/groups` |
+| TFA entries | Own user: always allowed; others: `User.Modify` for the user's groups (read: or `Sys.Audit`) |
+| TFA unlock | `User.Modify` for the user's groups |
+| Password change | Self: always allowed; others: `Realm.AllocateUser` on the user's realm and `User.Modify` for the user's groups |

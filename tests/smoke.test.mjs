@@ -1,6 +1,7 @@
 import { suite, autoRun } from "./helpers.mjs";
 import { lxcTemplateList } from "../dist/tools/lxc.js";
 import { nodeExecute } from "../dist/tools/node.js";
+import { storageUpload } from "../dist/tools/storage.js";
 import { ProxmoxError } from "../dist/proxmox-client.js";
 import { dotEnvTemplate } from "../dist/config.js";
 
@@ -131,6 +132,28 @@ export async function run() {
     if (!/^PROXMOX_USERNAME=root@pam$/m.test(explicit) || !/^PROXMOX_PASSWORD=supplied-by-env$/m.test(explicit)) {
       throw new Error("Template no longer preserves explicitly supplied fallback credentials");
     }
+  });
+
+  await s.test("storage upload downloads with default TLS verification, not the Proxmox dispatcher", async () => {
+    const original = globalThis.fetch;
+    let downloadInit;
+    globalThis.fetch = async (_url, init) => {
+      downloadInit = init;
+      return new Response(new Uint8Array([1, 2, 3]), { status: 200 });
+    };
+    try {
+      const tool = storageUpload({
+        _dispatcher: { insecure: true },
+        async upload() {
+          return "UPID:pve1:upload";
+        },
+      });
+      await tool.execute("storage-upload", { node: "pve1", storage: "local", url: "https://example.invalid/test.iso" }, undefined, undefined);
+    } finally {
+      globalThis.fetch = original;
+    }
+    if (!downloadInit) throw new Error("Expected the tool to download the URL");
+    if ("dispatcher" in downloadInit) throw new Error("The external download must not reuse the Proxmox TLS dispatcher");
   });
 
   return s.print();

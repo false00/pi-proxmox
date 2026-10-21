@@ -35,11 +35,12 @@ Create a new SDN zone.
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `zone` | string | Zone identifier |
-| `type` | string | Zone type: `vlan`, `vxlan`, `qinq`, `evpn`, `simple` |
+| `type` | string | Zone type: `simple`, `vlan`, `qinq`, `vxlan`, `evpn`, `faucet` |
 | `nodes` | string | Comma-separated list of nodes |
-| `peer` | string | EVPN peer address (for evpn type) |
+| `peers` | string | Peer addresses, usually the node IPs (for vxlan type) |
+| `controller` | string | EVPN controller (for evpn type) |
 | `mtu` | integer | MTU for the zone |
-| `bridge` | string | Bridge to attach (for simple type) |
+| `bridge` | string | Bridge whose VLANs the zone manages (for vlan and qinq types) |
 
 ```
 PUT /cluster/sdn/zones/{zone}
@@ -101,8 +102,7 @@ Add a subnet to a VNet.
 |-----------|------|-------------|
 | `subnet` | string | CIDR notation (e.g., `10.0.1.0/24`) |
 | `gateway` | string | Gateway address |
-| `dhcp_range_start` | string | DHCP range start |
-| `dhcp_range_end` | string | DHCP range end |
+| `dhcp-range` | array | DHCP ranges, each `start-address=<ip>,end-address=<ip>` |
 | `snat` | boolean | Enable SNAT |
 
 ```
@@ -121,7 +121,7 @@ POST /cluster/sdn/controllers
 ```
 Add a controller.
 
-**Parameters:** `controller` (string), `type` (string), `host` (string), `port` (integer), `asn` (integer), `bgp_multihop` (integer)
+**Parameters:** `controller` (string), `type` (string: `evpn`, `bgp`, `isis`, `faucet`), `peers` (string, peer addresses), `asn` (integer), `ebgp-multihop` (integer)
 
 ```
 DELETE /cluster/sdn/controllers/{controller}
@@ -130,19 +130,26 @@ Remove a controller.
 
 ## IPAM
 ```
-GET /cluster/sdn/ipam
+GET /cluster/sdn/ipams
 ```
-List IPAM configurations.
+List IPAM plugin configurations.
 
 ```
-POST /cluster/sdn/ipam
+POST /cluster/sdn/ipams
 ```
-Configure IPAM (e.g., `pveipam` or external).
+Add an IPAM plugin configuration (`pve`, `netbox`, or `phpipam`).
 
 ```
-DELETE /cluster/sdn/ipam/{ipam}
+GET /cluster/sdn/ipams/{ipam}
+PUT /cluster/sdn/ipams/{ipam}
+DELETE /cluster/sdn/ipams/{ipam}
 ```
-Remove IPAM configuration.
+Read, update, or remove an IPAM configuration.
+
+```
+GET /cluster/sdn/ipams/{ipam}/status
+```
+List the IP addresses the IPAM plugin has allocated.
 
 ## DNS
 ```
@@ -156,8 +163,9 @@ POST /cluster/sdn/dns
 Configure SDN DNS integration.
 
 ## Permissions
-- `SDN.Allocate` and `SDN.Use` — Required for SDN management
-- `Sys.Audit` on `/` — Required for reading SDN configuration
+- `SDN.Audit` (or `SDN.Allocate`) on the object's path under `/sdn` (for example `/sdn/zones/<zone>`, `/sdn/zones/<zone>/<vnet>`, `/sdn/ipams/<ipam>`) — reading SDN configuration; lists only show objects you can audit
+- `SDN.Allocate` on the object's path under `/sdn` — creating, changing, or deleting zones, VNets, subnets, controllers, IPAMs, and DNS plugins, and applying the configuration (`PUT /cluster/sdn`)
+- `SDN.Use` on `/sdn/zones/<zone>/<vnet>` — attaching guests to a VNet or bridge
 
 ## Common Workflows
 

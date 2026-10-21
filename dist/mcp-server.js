@@ -1,10 +1,13 @@
 #!/usr/bin/env node
 
+import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import piProxmoxExtension from "./index.js";
+
+const PACKAGE_VERSION = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
 
 function serializeSchema(schema) {
   return JSON.parse(JSON.stringify(schema));
@@ -43,7 +46,7 @@ export function createMcpServer(tools) {
   const server = new Server(
     {
       name: "pi-proxmox",
-      version: "1.0.2",
+      version: PACKAGE_VERSION,
     },
     {
       capabilities: {

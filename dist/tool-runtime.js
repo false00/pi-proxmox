@@ -6,6 +6,16 @@ export function throwIfAborted(signal) {
   }
 }
 
+export function validationError(message, guidance) {
+  return Object.assign(new Error(message), {
+    name: "ProxmoxError",
+    status: 400,
+    category: "validation",
+    guidance,
+    retryable: false,
+  });
+}
+
 export function emitProgress(onUpdate, msg) {
   if (typeof onUpdate === "function") {
     try {

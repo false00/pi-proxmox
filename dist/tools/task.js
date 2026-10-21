@@ -5,13 +5,14 @@ export function taskList(client) {
   return {
     name: "proxmox_task_list",
     label: "List Tasks",
-    description: "Lists recent and running tasks on a specific node.",
+    description: "Lists tasks on a specific node. Proxmox returns finished tasks by default; pass source='active' for running tasks or source='all' for both.",
     parameters: Type.Object({
       node: Type.String({ description: "Proxmox node name" }),
+      source: Type.Optional(Type.String({ description: "Which tasks to list: 'archive' (finished, default), 'active' (running), or 'all'" })),
       start: Type.Optional(Type.Integer({ description: "Optional offset into the task list (pagination)" })),
-      limit: Type.Optional(Type.Integer({ description: "Max entries to return (default: 20)" })),
+      limit: Type.Optional(Type.Integer({ description: "Max entries to return (Proxmox default: 50)" })),
       errors: Type.Optional(Type.Integer({ description: "Show only failed tasks: 1 or 0" })),
-      statusfilter: Type.Optional(Type.String({ description: "Filter by status: running, stopped, error" })),
+      statusfilter: Type.Optional(Type.String({ description: "Comma-separated task states to include" })),
       vmid: Type.Optional(Type.Integer({ description: "Filter by VM/CT ID" })),
     }),
     execute: safeExecute(async (params, signal, onUpdate) => {
@@ -50,7 +51,7 @@ export function taskLog(client) {
       node: Type.String({ description: "Proxmox node name" }),
       upid: Type.String({ description: "Task UPID identifier" }),
       start: Type.Optional(Type.Integer({ description: "Optional offset into the log (pagination)" })),
-      limit: Type.Optional(Type.Integer({ description: "Max log lines to return (default: 100)" })),
+      limit: Type.Optional(Type.Integer({ description: "Max log lines to return (Proxmox default: 50)" })),
     }),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);

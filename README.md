@@ -6,7 +6,7 @@
 
 Production-focused Proxmox VE automation for the Pi coding agent.
 
-`@false00/pi-proxmox` exposes **142 Pi tools** for managing Proxmox clusters: VMs, LXC containers, storage, cluster state, firewall rules, backups, HA, replication, access control, task tracking, and universal raw API access through the Proxmox REST API.
+`@false00/pi-proxmox` exposes **141 Pi tools** for managing Proxmox clusters: VMs, LXC containers, storage, cluster state, firewall rules, backups, HA, replication, access control, task tracking, and universal raw API access through the Proxmox REST API.
 
 | Resource | Link |
 |---|---|
@@ -27,7 +27,7 @@ This package is designed for people who want Pi to operate real Proxmox infrastr
 
 What makes it useful:
 
-- **Broad coverage** — 142 tools spanning VM, LXC, storage, cluster, firewall, backup, HA, replication, task workflows, and universal raw API access
+- **Broad coverage** — 141 tools spanning VM, LXC, storage, cluster, firewall, backup, HA, replication, task workflows, and universal raw API access
 - **Consistent wrapper strategy** — dedicated tools for common workflows, universal raw tools for edge cases, with parameters that intentionally stay close to the Proxmox API where practical
 - **Agent-friendly responses** — structured JSON output for read/list/status tools, plus progress streaming for long-running operations
 - **Operational safety** — destructive actions are explicit, task-based operations return UPIDs, and tool failures surface as real Pi tool errors
@@ -42,7 +42,7 @@ Tool coverage by area:
 |---|---:|
 | Virtual machines | 23 |
 | VM guest agent | 13 |
-| LXC containers | 21 |
+| LXC containers | 20 |
 | Nodes | 18 |
 | Storage + pools | 11 |
 | Cluster | 9 |
@@ -53,14 +53,14 @@ Tool coverage by area:
 | Replication | 5 |
 | Tasks | 3 |
 | Universal raw API coverage | 2 |
-| **Total** | **142** |
+| **Total** | **141** |
 
 ### Official API coverage audit
 
-Against the official Proxmox VE API viewer at `https://pve.proxmox.com/pve-docs/api-viewer/`, the API surface audited on **2026-06-17** exposed:
+Against the official Proxmox VE API viewer at `https://pve.proxmox.com/pve-docs/api-viewer/`, the API surface audited on **2026-10-21** exposed:
 
-- **444 routes**
-- **675 route/method combinations**
+- **449 routes**
+- **680 route/method combinations**
 - top-level namespaces: `access`, `cluster`, `nodes`, `pools`, `storage`, and `version`
 - standard REST methods: `GET`, `POST`, `PUT`, and `DELETE`
 
@@ -86,7 +86,7 @@ This repository aims to provide a stable automation surface for Pi users.
 
 Current guarantees:
 
-- published tool names are treated as stable once released
+- published tool names are treated as stable once released; a tool is removed or renamed only in a major release, with the reason in the CHANGELOG (for example, `proxmox_lxc_reset` was removed because it called an endpoint Proxmox does not have)
 - destructive operations are explicit in tool naming and documentation
 - dedicated tools stay close to upstream Proxmox semantics where practical
 - universal raw tools are the compatibility layer for long-tail official endpoints
@@ -114,7 +114,7 @@ pi -e .
 
 ### VS Code Copilot through MCP
 
-This repository also includes a stdio MCP bridge that exposes the same 142 `proxmox_*` tools to VS Code Copilot and other MCP clients. It reuses the existing Pi extension entrypoint and the same local configuration at `~/.config/pi-proxmox/.env`; do not put tokens or passwords in `mcp.json`.
+This repository also includes a stdio MCP bridge that exposes the same 141 `proxmox_*` tools to VS Code Copilot and other MCP clients. It reuses the existing Pi extension entrypoint and the same local configuration at `~/.config/pi-proxmox/.env`; do not put tokens or passwords in `mcp.json`.
 
 For a local checkout, configure the MCP client with an absolute path to the bridge:
 
@@ -434,7 +434,6 @@ Errors in `timeout`, `network`, and `server_error` categories are marked retryab
 | `proxmox_lxc_start` | Start a container |
 | `proxmox_lxc_stop` | Stop a container |
 | `proxmox_lxc_shutdown` | Shut down a container |
-| `proxmox_lxc_reset` | Hard-reset a container |
 | `proxmox_lxc_resume` | Resume a suspended container |
 | `proxmox_lxc_suspend` | Suspend a container |
 | `proxmox_lxc_reboot` | Reboot a container |
@@ -459,18 +458,18 @@ Errors in `timeout`, `network`, and `server_error` categories are marked retryab
 | `proxmox_node_status` | Get detailed node status |
 | `proxmox_node_config` | Get node configuration |
 | `proxmox_node_services` | List services on a node |
-| `proxmox_node_service_status` | Get detailed service status |
+| `proxmox_node_service_status` | Get a service's systemd state |
 | `proxmox_node_service_start` | Start a service |
 | `proxmox_node_service_stop` | Stop a service |
 | `proxmox_node_service_restart` | Restart a service |
 | `proxmox_node_journal` | Read systemd journal |
 | `proxmox_node_dns` | Get DNS configuration |
 | `proxmox_node_time` | Get system time and timezone |
-| `proxmox_node_hardware` | List hardware devices |
+| `proxmox_node_hardware` | List PCI or USB devices |
 | `proxmox_node_network_list` | List network interfaces |
 | `proxmox_node_execute` | Batch relative node API calls via `/execute` |
 | `proxmox_node_reboot` | Reboot the node |
-| `proxmox_node_stop` | Power off the node |
+| `proxmox_node_stop` | Shut down (power off) the node |
 | `proxmox_node_apt_update` | Refresh the APT package index |
 | `proxmox_node_subscription` | Get subscription status |
 
@@ -483,7 +482,7 @@ Errors in `timeout`, `network`, and `server_error` categories are marked retryab
 | `proxmox_storage_create` | Create a storage backend |
 | `proxmox_storage_detail` | Get storage details |
 | `proxmox_storage_delete` | Delete a storage backend |
-| `proxmox_storage_scan` | Scan for available storage resources |
+| `proxmox_storage_scan` | Scan for NFS, CIFS, iSCSI, LVM, LVM-thin, or ZFS storage |
 | `proxmox_storage_upload` | Download from URL and upload to Proxmox storage |
 | `proxmox_storage_remove_volume` | Remove a storage volume |
 | `proxmox_pool_list` | List resource pools |
@@ -501,7 +500,7 @@ Errors in `timeout`, `network`, and `server_error` categories are marked retryab
 | `proxmox_cluster_log` | Get the cluster log |
 | `proxmox_cluster_options` | Get cluster options |
 | `proxmox_cluster_update_options` | Update cluster options |
-| `proxmox_cluster_config` | Get cluster join configuration |
+| `proxmox_cluster_config` | Get cluster join information |
 | `proxmox_check_permissions` | Probe current token permissions |
 
 ### Backup
@@ -553,7 +552,7 @@ Errors in `timeout`, `network`, and `server_error` categories are marked retryab
 
 | Tool | Description |
 |---|---|
-| `proxmox_ha_status` | Get HA status |
+| `proxmox_ha_status` | Get the current HA manager status |
 | `proxmox_ha_resources_list` | List HA resources |
 | `proxmox_ha_resource_create` | Add a resource to HA |
 | `proxmox_ha_resource_delete` | Remove a resource from HA |
@@ -568,7 +567,7 @@ Errors in `timeout`, `network`, and `server_error` categories are marked retryab
 | `proxmox_replication_list` | List replication jobs |
 | `proxmox_replication_create` | Create a replication job |
 | `proxmox_replication_delete` | Delete a replication job |
-| `proxmox_replication_run` | Trigger replication sync |
+| `proxmox_replication_run` | Schedule a replication job to run now |
 | `proxmox_replication_log` | Get replication job log |
 
 ### Tasks
@@ -588,15 +587,14 @@ Errors in `timeout`, `network`, and `server_error` categories are marked retryab
 
 ## Pagination notes
 
-Several tools accept optional `start` and `limit` parameters. These map directly to Proxmox pagination or time-window query parameters.
+`proxmox_task_list` and `proxmox_task_log` accept optional `start` and `limit` parameters, which map directly to Proxmox pagination:
 
 | Tool | Endpoint | `start` semantics |
 |---|---|---|
 | `proxmox_task_list` | `/nodes/{node}/tasks` | integer offset |
-| `proxmox_task_log` | `/nodes/{node}/tasks/{upid}/log` | integer offset |
-| `proxmox_node_journal` | `/nodes/{node}/journal` | Unix timestamp |
+| `proxmox_task_log` | `/nodes/{node}/tasks/{upid}/log` | integer line offset |
 
-For journal queries, `start` and `end` are epoch timestamps, not row offsets.
+`proxmox_node_journal` uses the journal's own windowing instead: `since` and `until` are Unix epoch timestamps, `lastentries` returns the last N entries, and `startcursor`/`endcursor` continue from journal cursors.
 
 ## Repository layout
 
@@ -609,7 +607,8 @@ dist/                     Runtime extension code committed directly to the repo
 
 docs/                     Bundled Proxmox API reference material and operator docs
 
-tests/                    Live integration, smoke, and runtime-behavior tests
+tests/                    Live integration, smoke, endpoint-conformance, and runtime-behavior tests
+  fixtures/               Snapshot of the official API viewer schema used by the offline tests
 
 scripts/                  Audit and maintenance helpers
 .github/                  CI workflow, issue templates, and repo automation
@@ -636,9 +635,23 @@ See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) for the maintained compatibil
 
 ## Development
 
+Offline checks (no Proxmox cluster needed; `test:security` and `audit:official-api` need network access to npm and the Proxmox API viewer):
+
 ```bash
 npm ci
-npm test
+npm run test:smoke
+npm run test:endpoints
+npm run test:mcp
+npm run test:package
+npm run test:security
+npm run audit:official-api
+npm run test:ci            # all of the above, as CI runs them
+```
+
+Live suites, which create and delete resources on a real Proxmox cluster configured in `~/.config/pi-proxmox/.env` (use a lab cluster):
+
+```bash
+npm test                   # every suite, offline and live
 npm run test:auth
 npm run test:pagination
 npm run test:vm-agent
@@ -648,10 +661,12 @@ npm run test:vm
 npm run test:upload
 npm run test:runtime
 npm run test:raw-api
-npm run test:package
-npm run test:security
-npm run test:ci
-npm run audit:official-api
+```
+
+Refresh the official API snapshot that `test:endpoints` checks against when Proxmox publishes API changes:
+
+```bash
+npm run update:api-snapshot
 ```
 
 ### Test philosophy
@@ -662,6 +677,7 @@ This project prefers **real integration coverage** over mock-heavy tests.
 - VM and LXC lifecycle tests create resources and clean them up
 - Runtime tests verify Pi-specific behavior such as progress streaming, thrown tool errors, and tool timeout handling
 - Raw API tests verify the universal coverage tools against official GET/POST/PUT/DELETE and upload-style endpoints
+- Endpoint conformance tests run every dedicated tool against a recording client and check each request's path, method, and parameters, and every endpoint named in the docs, against `tests/fixtures/pve-api-snapshot.json`, a snapshot of the official API viewer schema
 - Package tests verify repository metadata and published-package structure
 - The official API audit script fetches the Proxmox API viewer and reports the current upstream route and method counts
 

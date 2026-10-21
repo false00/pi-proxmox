@@ -10,7 +10,7 @@ Official Proxmox VE API viewer:
 
 Audit date:
 
-- 2026-06-17
+- 2026-10-21
 
 Repository audit command:
 
@@ -22,8 +22,8 @@ npm run audit:official-api
 
 From the official API viewer schema published by Proxmox VE:
 
-- **444 routes**
-- **675 route/method combinations**
+- **449 routes**
+- **680 route/method combinations**
 - top-level namespaces:
   - `access`
   - `cluster`
@@ -90,6 +90,7 @@ The hybrid model keeps the package:
 Coverage is backed by:
 
 - dedicated domain tests in `tests/`
+- offline endpoint conformance tests (`npm run test:endpoints`) that run every dedicated tool against a recording client and check each request's path, method, and parameter names, plus every endpoint the docs name, against `tests/fixtures/pve-api-snapshot.json`, a snapshot of this schema (refresh it with `npm run update:api-snapshot`)
 - runtime-behavior tests for Pi tool semantics
 - raw API tests that exercise:
   - generic `GET`

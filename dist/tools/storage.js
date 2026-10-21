@@ -1,5 +1,5 @@
 import { Type } from "typebox";
-import { throwIfAborted, emitProgress, safeExecute } from "../tool-runtime.js";
+import { throwIfAborted, emitProgress, safeExecute, validationError } from "../tool-runtime.js";
 
 /**
  * Categorizes network fetch errors for consistent error handling.
@@ -111,11 +111,11 @@ export function storageUpload(client) {
   return {
     name: "proxmox_storage_upload",
     label: "Upload File to Storage",
-    description: "Downloads a file from a URL and uploads it to a Proxmox storage backend as an ISO, container template, or other content type. Supports ISO images, VZ templates, snippets, and more.",
+    description: "Downloads a file from a URL on the machine running this package, verifying the URL's TLS certificate, and uploads it to a Proxmox storage backend as an ISO image, a container template, or an import image (OVA or VM disk).",
     parameters: Type.Object({
       node: Type.String({ description: "Target Proxmox node" }),
       storage: Type.String({ description: "Storage identifier (e.g., 'local', 'local-lvm')" }),
-      content: Type.Optional(Type.String({ description: "Content type: iso, vztmpl, snippets, backup (default: iso)" })),
+      content: Type.Optional(Type.String({ description: "Content type: iso (default), vztmpl, or import" })),
       url: Type.String({ description: "URL to download the file from" }),
       filename: Type.Optional(Type.String({ description: "Destination filename (derived from URL if omitted)" })),
     }),
@@ -129,9 +129,9 @@ export function storageUpload(client) {
 
       let downloadResp;
       try {
+        // Use the default dispatcher: PROXMOX_VERIFY_SSL only covers the Proxmox host, never third-party downloads.
         downloadResp = await fetch(params.url, {
           signal: signal ? signal : undefined,
-          dispatcher: client._dispatcher,
         });
       } catch (err) {
         const categorized = categorizeFetchError(err, params.url);
@@ -209,7 +209,7 @@ export function storageDetail(client) {
   return {
     name: "proxmox_storage_detail",
     label: "Get Storage Details",
-    description: "Gets detailed configuration and status for a specific storage backend.",
+    description: "Gets the configuration of a storage backend (GET /storage/{storage}). For usage and capacity, use proxmox_storage_list.",
     parameters: Type.Object({ storage: Type.String({ description: "Storage identifier" }) }),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
@@ -232,16 +232,41 @@ export function storageDelete(client) {
   };
 }
 
+const SCAN_TYPES = {
+  nfs: ["server"],
+  cifs: ["server"],
+  iscsi: ["portal"],
+  lvm: [],
+  lvmthin: ["vg"],
+  zfs: [],
+};
+
 export function storageScan(client) {
   return {
     name: "proxmox_storage_scan",
     label: "Scan Storage Resources",
-    description: "Scans for available storage resources (iSCSI, ZFS, LVM, NFS, Ceph) on a node.",
-    parameters: Type.Object({ node: Type.String({ description: "Proxmox node name" }), type: Type.Optional(Type.String({ description: "Scan type: iscsi, lvm, nfs, ceph, zfs" })) }),
+    description: "Scans for storage a node could use: NFS exports or CIFS shares on a server, iSCSI targets on a portal, or the node's local LVM volume groups, LVM thin pools, and ZFS pools. Without a type it lists the scan types the node supports. Scans that need credentials (CIFS with a username, Proxmox Backup Server) are not covered; use proxmox_api_call for those.",
+    parameters: Type.Object({
+      node: Type.String({ description: "Proxmox node name" }),
+      type: Type.Optional(Type.String({ description: "Scan type: nfs, cifs, iscsi, lvm, lvmthin, or zfs; omit to list the available scan types" })),
+      server: Type.Optional(Type.String({ description: "Server name or IP (required for nfs and cifs)" })),
+      portal: Type.Optional(Type.String({ description: "iSCSI portal, an IP or DNS name with optional port (required for iscsi)" })),
+      vg: Type.Optional(Type.String({ description: "LVM volume group (required for lvmthin)" })),
+    }),
     execute: safeExecute(async (params, signal, onUpdate) => {
       throwIfAborted(signal);
-      const query = params.type ? { type: params.type } : undefined;
-      return await client.get(`/nodes/${params.node}/scan`, query);
+      if (!params.type) return await client.get(`/nodes/${params.node}/scan`);
+
+      const required = SCAN_TYPES[params.type];
+      if (!required) {
+        throw validationError(`Unsupported scan type '${params.type}'`, `Use one of: ${Object.keys(SCAN_TYPES).join(", ")}. Use proxmox_api_call for scans that need credentials.`);
+      }
+      const query = {};
+      for (const key of required) {
+        if (!params[key]) throw validationError(`A ${params.type} scan requires '${key}'`, `Pass ${key} for a ${params.type} scan.`);
+        query[key] = params[key];
+      }
+      return await client.get(`/nodes/${params.node}/scan/${params.type}`, required.length > 0 ? query : undefined);
     }),
   };
 }

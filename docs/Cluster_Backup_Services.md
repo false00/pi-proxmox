@@ -23,21 +23,21 @@ Create a new backup job.
 **Parameters:**
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `id` | string | Backup job ID |
-| `node` | string | Node to run backup on |
+| `id` | string | Backup job ID (generated when omitted) |
+| `node` | string | Only run the job on this node |
 | `storage` | string | Target storage ID |
 | `mode` | string | Backup mode: `snapshot`, `suspend`, `stop` |
-| `schedule` | string | Cron schedule expression |
-| `vmid` | string | VM/CT IDs to backup (comma-separated) |
-| `compress` | string | Compression: `lzo`, `gzip`, `zstd` |
-| `dumpdir` | string | Custom dump directory |
+| `schedule` | string | Schedule as a systemd calendar event (e.g., `02:00` or `sat 03:00`) |
+| `vmid` | string | VM/CT IDs to back up (comma-separated) |
+| `compress` | string | Compression: `0`, `1`, `gzip`, `lzo`, `zstd` |
+| `dumpdir` | string | Custom dump directory (root only) |
 | `prune-backups` | string | Retention: `keep-last=N`, `keep-hourly=N`, `keep-daily=N`, `keep-weekly=N`, `keep-monthly=N` |
-| `enable` | integer | Enable/disable the job |
+| `enabled` | boolean | Enable or disable the job |
 | `exclude-path` | string | Paths to exclude |
 | `performance` | string | Performance tuning parameters |
 | `notes-template` | string | Template for backup notes |
 | `all` | boolean | Include all VMs/CTs |
-| `pool` | string | Backup all VMs in a pool |
+| `pool` | string | Back up all guests in a pool |
 
 ```
 PUT /cluster/backup/{id}
@@ -51,89 +51,96 @@ Remove a backup job.
 
 ### Backup Info
 ```
-GET /cluster/backup-info
+GET /cluster/backup-info/not-backed-up
 ```
-Get summary information about backup operations, including running jobs and recent results.
+List guests that no backup job covers.
 
-### Restore Operations
-Restoring is performed per-VM/CT:
+### Running and Restoring Backups
+A one-off backup runs on a node:
 ```
-POST /nodes/{node}/qemu/{vmid}/status/start
-POST /nodes/{node}/lxc/{vmid}/status/start
+POST /nodes/{node}/vzdump
 ```
-Backup restore is done via:
+Restoring creates the guest again from a backup archive:
 ```
 POST /nodes/{node}/qemu
 POST /nodes/{node}/lxc
 ```
-Using the backup file as `ostemplate` or via `pvesm` for manual extraction.
+Pass the backup volume as `archive` (QEMU) or as `ostemplate` with `restore=1` (LXC).
 
 ## Job Management
 ```
 GET /cluster/jobs
 ```
-List cluster jobs (backup, replication, migration tasks).
-
-**Parameters:** `type` (string) — filter by job type: `backup`, `replication`, `migration`
+Index of job-related endpoints.
 
 ```
-GET /cluster/jobs/{id}
+GET /cluster/jobs/realm-sync
+GET /cluster/jobs/realm-sync/{id}
 ```
-Get details of a specific job.
+List or read realm-sync jobs (also `POST`, `PUT`, and `DELETE` on `/cluster/jobs/realm-sync/{id}`).
+
+```
+GET /cluster/jobs/schedule-analyze
+```
+Preview the next run times of a schedule (`schedule`, `iterations`, `starttime`).
 
 ## Metrics
 ```
-GET /cluster/metrics
+GET /cluster/metrics/server
 ```
-Get cluster-wide metrics configuration.
+List the configured external metric servers.
 
 ```
-POST /cluster/metrics
+POST /cluster/metrics/server/{id}
 ```
-Configure metrics server (InfluxDB, Graphite).
+Add an external metric server (InfluxDB, Graphite, or OpenTelemetry).
 
 **Parameters:**
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `server` | string | Metrics server address |
 | `port` | integer | Server port |
-| `protocol` | string | `influxdb`, `graphite` |
+| `type` | string | `influxdb`, `graphite`, `opentelemetry` |
+| `influxdbproto` | string | InfluxDB transport: `udp`, `http`, `https` |
 | `organization` | string | InfluxDB organization |
 | `bucket` | string | InfluxDB bucket |
 | `token` | string | InfluxDB authentication token |
-| `mtu` | integer | MTU for metrics packets |
-| `timeout` | integer | Connection timeout |
-| `enable` | boolean | Enable/disable metrics export |
+| `mtu` | integer | MTU for metrics sent over UDP |
+| `timeout` | integer | Graphite TCP socket timeout |
+| `disable` | boolean | Disable this metric server |
 
 ```
-PUT /cluster/metrics/{id}
-DELETE /cluster/metrics/{id}
+GET /cluster/metrics/server/{id}
+PUT /cluster/metrics/server/{id}
+DELETE /cluster/metrics/server/{id}
 ```
-Update or remove a metrics server configuration.
+Read, update, or remove a metric server configuration.
 
 ```
-GET /cluster/metrics/config
+GET /cluster/metrics/export
 ```
-View current metrics configuration.
+Export the current cluster metrics.
 
 ## ACME (Automatic Certificate Management)
 ```
 GET /cluster/acme
 ```
-View ACME account and plugin configuration.
+Index of ACME endpoints.
 
+### ACME Accounts
 ```
-POST /cluster/acme
+GET /cluster/acme/account
+POST /cluster/acme/account
 ```
-Configure ACME account.
+List ACME accounts, or register a new one (root only).
 
 **Parameters:**
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `account` | string | ACME account URL (optional for new accounts) |
-| `contact` | string | Contact email |
-| `directory` | string | ACME directory URL (e.g., `https://acme-v02.api.letsencrypt.org/directory`) |
-| `tos` | boolean | Agree to Terms of Service |
+| `name` | string | Account name (default: `default`) |
+| `contact` | string | Contact email addresses |
+| `directory` | string | ACME directory URL (default: `https://acme-v02.api.letsencrypt.org/directory`) |
+| `tos_url` | string | URL of the CA's terms of service (see `GET /cluster/acme/meta`); setting it indicates agreement |
 
 ### ACME Plugins
 ```
@@ -146,121 +153,137 @@ POST /cluster/acme/plugins
 ```
 Add an ACME plugin.
 
-**Parameters:** `plugin` (string), `api` (string), `data` (string), `type` (string: `dns`)
+**Parameters:** `id` (string), `type` (string: `dns` or `standalone`), `api` (string, DNS provider), `data` (string, base64-encoded provider settings)
 
 ```
-DELETE /cluster/acme/plugins/{plugin}
+DELETE /cluster/acme/plugins/{id}
 ```
 Remove an ACME plugin.
 
-### ACME Certificate Renewal
+### Node Certificates from ACME
+Certificates are ordered per node:
 ```
-POST /cluster/acme/certificate/new
+POST /nodes/{node}/certificates/acme/certificate
 ```
-Order a new certificate from the ACME provider.
+Order a new certificate from the ACME CA.
 
 ```
-PUT /cluster/acme/certificate/renew
+PUT /nodes/{node}/certificates/acme/certificate
 ```
-Renew existing certificate.
+Renew the existing certificate.
 
 ```
-DELETE /cluster/acme/certificate
+DELETE /nodes/{node}/certificates/acme/certificate
 ```
-Revoke certificate.
+Revoke the certificate.
 
 ```
-GET /cluster/acme/certificate
+GET /nodes/{node}/certificates/info
 ```
-View current ACME certificate details.
+View the node's certificate details.
 
 ## Notifications
 ```
 GET /cluster/notifications
 ```
-List notification endpoints and configuration.
+Index of notification endpoints, matchers, and targets.
 
 ### Notification Endpoints
 ```
-POST /cluster/notifications/endpoints
+GET /cluster/notifications/endpoints
 ```
-Create a notification endpoint (email, webhook, gotify, etc.).
+Index of endpoint types.
 
-**Parameters:**
+```
+POST /cluster/notifications/endpoints/sendmail
+POST /cluster/notifications/endpoints/smtp
+POST /cluster/notifications/endpoints/gotify
+POST /cluster/notifications/endpoints/webhook
+```
+Create a notification endpoint of that type. Each type has `GET`, `PUT`, and `DELETE` on `/cluster/notifications/endpoints/<type>/{name}`.
+
+**Parameters (examples):**
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `name` | string | Endpoint name |
-| `type` | string | `sendmail`, `gotify`, `webhook` |
-| `mailto` | string | Email recipient (for sendmail) |
-| `url` | string | Webhook URL |
-| `token` | string | Gotify token |
+| `mailto` | array | Email recipients (sendmail, smtp) |
+| `server` | string | Server URL (gotify) |
+| `token` | string | Secret token (gotify) |
+| `url` | string | Server URL (webhook) |
+| `method` | string | HTTP method: `post`, `put`, `get` (webhook) |
 | `comment` | string | Description |
 
 ### Notification Matchers
 ```
 GET /cluster/notifications/matchers
 ```
-List notification match rules.
+List notification matchers.
 
 ```
 POST /cluster/notifications/matchers
 ```
-Create a notification match rule.
+Create a notification matcher.
 
-**Parameters:** `name` (string), `match-type` (string), `severity` (string), `target` (string), `endpoint` (string), `mode` (string: `any`, `all`)
+**Parameters:** `name` (string), `match-field` (array), `match-severity` (array), `match-calendar` (array), `mode` (string: `all` or `any`), `invert-match` (boolean), `target` (array)
 
 ## Bulk Actions
 ```
-POST /cluster/bulk-action
+POST /cluster/bulk-action/guest/start
+POST /cluster/bulk-action/guest/shutdown
+POST /cluster/bulk-action/guest/suspend
+POST /cluster/bulk-action/guest/migrate
 ```
-Perform operations on multiple resources simultaneously.
+Start, shut down, suspend, or migrate many guests at once.
 
-**Parameters:** `action` (string), `ids` (string, comma-separated), additional action-specific parameters.
+**Parameters:** `vms` (array of VMIDs; all guests when omitted), `max-workers` (integer), and action-specific options such as the shutdown `timeout` or the migration `target`.
 
 ## Resource Mapping
 ```
 GET /cluster/mapping
 ```
-View PCI and USB device mappings for pass-through.
+Index of PCI, USB, and directory mappings.
 
 ```
-POST /cluster/mapping
+POST /cluster/mapping/pci
+POST /cluster/mapping/usb
+POST /cluster/mapping/dir
 ```
-Create a device mapping.
+Create a mapping.
 
-**Parameters:** `type` (string: `pci`, `usb`), `name` (string), `map` (array of node mappings)
+**Parameters:** `id` (string), `map` (array of per-node mappings), `description` (string)
 
 ## Permissions
-- `Sys.Modify` on `/` — Required for creating/updating backups, ACME, metrics, notifications
-- `Sys.Audit` on `/` — Required for reading configuration
-- `Datastore.Allocate` on `/storage/{storage}` — Required for backup to specific storage
+- `Sys.Audit` on `/` — reading backup jobs, the not-backed-up report, metric servers, and the metrics export
+- `Sys.Modify` on `/` — backup jobs, metric servers, and ACME plugins
+- Root only — registering ACME accounts, and the `tmpdir`, `dumpdir`, and `script` options of backup jobs
+- `Sys.Modify` on `/nodes/{node}` — ordering, renewing, or revoking a node's ACME certificate
+- `Mapping.Modify` on `/mapping/notifications` — notification endpoints and matchers; creating endpoints also needs `Sys.Audit` and `Sys.Modify` on `/` (or `Sys.AccessNetwork` on `/`)
+- `Mapping.Modify` on `/mapping/pci`, `/mapping/usb`, or `/mapping/dir` — resource mappings
+- Running a backup (`POST /nodes/{node}/vzdump`) needs `VM.Backup` on each guest and `Datastore.AllocateSpace` on the backup storage
 
 ## Common Workflows
 
 ### Create a Backup Job
 ```bash
 curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
-  -d "id=nightly-backup&storage=backup-store&schedule=0 2 * * *&mode=snapshot&compress=zstd&all=1&prune-backups=keep-last=7" \
+  --data-urlencode "id=nightly-backup" --data-urlencode "storage=backup-store" \
+  --data-urlencode "schedule=02:00" --data-urlencode "mode=snapshot" \
+  --data-urlencode "compress=zstd" --data-urlencode "all=1" \
+  --data-urlencode "prune-backups=keep-last=7" \
   https://node:8006/api2/json/cluster/backup
-```
-
-### Set Up an ACME Account
-```bash
-curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
-  -d "contact=admin@example.com&directory=https://acme-v02.api.letsencrypt.org/directory&tos=1" \
-  https://node:8006/api2/json/cluster/acme
 ```
 
 ### Add a Metrics Server (InfluxDB)
 ```bash
 curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
-  -d "server=influxdb.local&port=8089&protocol=influxdb&organization=proxmox&bucket=pve-metrics&enable=1" \
-  https://node:8006/api2/json/cluster/metrics
+  -d "type=influxdb&server=influxdb.local&port=8089" \
+  https://node:8006/api2/json/cluster/metrics/server/influxdb-main
 ```
 
 ### Add a Webhook Notification Endpoint
 ```bash
 curl -X POST -H 'Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID' \
-  -d "name=alert-webhook&type=webhook&url=https://hooks.example.com/proxmox&comment=Alert webhook" \
-  https://node:8006/api2/json/cluster/notifications/endpoints
+  --data-urlencode "name=alert-webhook" --data-urlencode "method=post" \
+  --data-urlencode "url=https://hooks.example.com/proxmox" --data-urlencode "comment=Alert webhook" \
+  https://node:8006/api2/json/cluster/notifications/endpoints/webhook
 ```
