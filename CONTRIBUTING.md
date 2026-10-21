@@ -28,7 +28,7 @@ SECURITY.md  Vulnerability reporting and security policy
 
 Requirements:
 
-- Node.js 22+
+- Node.js 22.19+
 - Access to a reachable Proxmox VE environment for integration tests
 - A configured `~/.config/pi-proxmox/.env` for a lab cluster. The live suites create and delete guests and upload files, so they need broader grants than the least-privilege setup in `docs/PERMISSIONS.md`, and `npm run test:execute` expects the discouraged `root@pam` password fallback for the root-only `/nodes/{node}/execute` endpoint. Keep that configuration isolated from everyday use and away from production clusters.
 

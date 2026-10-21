@@ -6,6 +6,9 @@ The format is intentionally simple and human-readable.
 
 ## Unreleased
 
+### Breaking changes
+- Raised the declared Node.js floor from `>=22.0.0` to `>=22.19.0`, the minimum that the `undici` 8.x runtime dependency already required.
+
 ### Added
 - Added a stdio MCP bridge that exposes the existing `proxmox_*` tool surface to VS Code and other MCP clients, with non-live protocol and schema coverage.
 
@@ -13,11 +16,14 @@ The format is intentionally simple and human-readable.
 - LXC template listing now reads `vztmpl` content from a selectable storage backend instead of using the obsolete node template endpoint.
 - Updated pinned GitHub Actions and grouped CodeQL updates so its initialization and analysis steps stay on the same version.
 - Stabilized the protected package CI check name and expanded CI to cover the MCP bridge.
+- Updated the pinned GitHub Actions to `actions/setup-node` 7.1.0 and `github/codeql-action` 4.39.1, still pinned to full commit SHAs.
 
 ### Security
 - Updated `@earendil-works/pi-coding-agent`, `undici`, `typebox`, `brace-expansion`, and `protobufjs` to patched versions that pass the repository audit gate.
 - Setup guidance now recommends a dedicated non-root user, a privilege-separated API token, and narrowly scoped ACLs (starting read-only) instead of a `root@pam` token with privilege separation disabled. `docs/PERMISSIONS.md` maps each tool to the privilege and path Proxmox checks.
 - The password fallback is now documented as optional and discouraged: `/nodes/{node}/execute` is root-only, so leaving the fallback unset makes `proxmox_node_execute` fail closed. Runtime hints, error guidance, tool descriptions, and the auto-created `.env` template no longer point to root tokens or to disabling privilege separation.
+- Resolved every open Dependabot alert and `npm audit` finding (the alerts were 1 critical, 7 high, 12 moderate, and 3 low): `@modelcontextprotocol/sdk` 1.32.1 and `undici` 8.12.3 (runtime dependencies), plus the transitive `proxy-addr` 2.0.8, `fast-uri` 3.1.9, `hono` 4.13.13, `ip-address` 10.7.4, and `qs` 6.16.1. No npm `overrides` are used.
+- Updated the `@earendil-works/pi-coding-agent` development dependency from 0.84.1 to 1.3.0 (and `typebox` to 1.4.2). Pi 0.84.1 pins the vulnerable `undici` 8.9.0 and `brace-expansion` 5.0.9 in its `package.json` and `npm-shrinkwrap.json`; instead of forcing other versions into it with npm `overrides`, the upgrade brings Pi's own patched pins (`undici` 8.10.2, `brace-expansion` 5.0.12). Pi's 1.x breaking changes do not touch the extension contract this package uses (`pi.registerTool()` with `name`, `label`, `description`, TypeBox `parameters`, and `execute(toolCallId, params, signal, onUpdate, ctx)`), so no runtime code changed, and the peer dependency stays `"*"` as Pi's package guidance requires.
 
 ## 1.0.2 - 2026-07-16
 
