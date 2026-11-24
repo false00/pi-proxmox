@@ -6,6 +6,12 @@ The format is intentionally simple and human-readable.
 
 ## Unreleased
 
+## 2.0.1 - 2026-11-23
+
+- Updated the MCP bridge dependency tree to patched Hono, Node-server, and body-parser releases.
+- Updated the development Pi agent dependency to remove vulnerable nested undici copies.
+- Require Pi `>=1.5.0 <2.0.0` so older vulnerable hosts do not satisfy the published peer range.
+
 ## 2.0.0 - 2026-10-21
 
 This major release corrects tools that called endpoints the Proxmox VE API does not have, and clears every open dependency security alert. Removing `proxmox_lxc_reset`, replacing tool parameters that Proxmox never accepted, stricter firewall scope validation, and the Node.js 22.19 floor are breaking changes, listed below.

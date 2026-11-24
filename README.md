@@ -622,11 +622,11 @@ CHANGELOG.md              Release history
 
 ## Compatibility
 
-Verified directly from this repository:
+The current Pi host requirement is `>=1.5.0 <2.0.0`. Earlier live integration work verified the environment below; this security release is validated with offline smoke, endpoint, and MCP checks rather than new live infrastructure operations.
 
 | Component | Verified value |
 |---|---|
-| Pi runtime | `0.79.6` |
+| Pi runtime (historical live tests) | `0.79.6` |
 | Proxmox VE release | `9.2` |
 | Proxmox VE version | `9.2.3` |
 | Node.js | `>=22.19` |

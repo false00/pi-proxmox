@@ -33,6 +33,7 @@ The package exists to give the Pi coding agent high-coverage Proxmox VE tooling 
 - The MCP bridge must continue to collect tool definitions through `dist/index.js`; do not fork or rename the `proxmox_*` tool surface for MCP.
 - Full official API reach is provided by a combination of dedicated tools plus the universal `proxmox_api_call` and `proxmox_api_upload_file` tools.
 - The currently supported Node.js floor is **22.19+** (the minimum required by the `undici` 8.x runtime dependency).
+- The supported Pi host range is **>=1.5.0 <2.0.0**, including its undici TLS-validation fixes.
 
 ## Pi package conventions
 
