@@ -2,7 +2,16 @@
 
 This document records the environments verified directly from this repository.
 
-## Tested environment
+## Current runtime requirements
+
+- Node.js `>=22.19.0`
+- Pi coding agent `>=1.5.0 <2.0.0`, including its undici TLS-validation fixes
+
+The security release is validated with offline smoke, endpoint, and MCP tests.
+The live integration results below predate the new minimum Pi host version and
+were not rerun as part of the dependency update.
+
+## Previously tested live environment
 
 | Component | Verified value |
 |---|---|
